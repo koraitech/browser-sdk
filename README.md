@@ -59,8 +59,8 @@ token, CORS requirements, tracing headers and a CDN-style `<script>` setup.
 
 ## CDN bundles
 
-Each release attaches the browser bundles (`korai-rum.js`, `korai-rum-slim.js`,
-`korai-logs.js`) to its GitHub release. They are also available from any npm CDN, for example:
+Each GitHub release attaches the bundle folders. The bundles are also available from any npm
+CDN, for example:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@koraitech/browser-rum@<VERSION>/bundle/korai-rum.js"></script>

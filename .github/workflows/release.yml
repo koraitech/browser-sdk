@@ -1,0 +1,86 @@
+name: Release
+
+# Push a tag matching the version in lerna.json (e.g. v0.1.0) to publish every public
+# package to npm and attach the browser bundles to a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the GitHub release
+  id-token: write # npm provenance / trusted publishing
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Bakes the real version into the bundles (reported as sdk_version) instead of "dev".
+  BUILD_MODE: release
+  # Packages published to npm. The framework integrations are not published yet.
+  PUBLISHED_PACKAGES: >-
+    @koraitech/js-core
+    @koraitech/browser-core
+    @koraitech/browser-worker
+    @koraitech/browser-rum-core
+    @koraitech/browser-rum
+    @koraitech/browser-rum-slim
+    @koraitech/browser-logs
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: package.json
+          registry-url: https://registry.npmjs.org
+
+      - run: corepack enable
+
+      - run: yarn install --immutable
+
+      - name: Check the tag matches the package version
+        run: |
+          version=$(node -p "require('./lerna.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match lerna.json version ${version}"
+            exit 1
+          fi
+          node scripts/fork/rebrand.mjs --check
+
+      - run: yarn typecheck
+      - run: yarn build
+      - run: yarn test:unit
+
+      - name: Publish to npm
+        env:
+          # Leave NPM_TOKEN unset once npm trusted publishing is configured for every package.
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          includes=()
+          for pkg in $PUBLISHED_PACKAGES; do includes+=(--include "$pkg"); done
+          case "$GITHUB_REF_NAME" in
+            *-*) tag=next ;;
+            *) tag=latest ;;
+          esac
+          yarn workspaces foreach --verbose --all --topological --no-private "${includes[@]}" \
+            npm publish --access public --tolerate-republish --provenance --tag "$tag"
+
+      - name: Create GitHub release with the browser bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The full RUM bundle lazy-loads its recorder from ./chunks, so ship each bundle
+          # folder as a whole.
+          mkdir -p release
+          for name in rum rum-slim logs; do
+            tar -czf "release/korai-${name}-${GITHUB_REF_NAME}.tgz" -C "packages/browser-${name}" bundle
+          done
+          prerelease=()
+          case "$GITHUB_REF_NAME" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" release/* --generate-notes "${prerelease[@]}"

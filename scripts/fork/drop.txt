@@ -1,0 +1,23 @@
+# Upstream paths removed on every import: OpenObserve's own release/CI plumbing, docs that
+# only apply to their fork, and editor/assistant configuration. Any AGENTS.md or CLAUDE.md
+# file anywhere in the tree is removed as well. One path per line; directories recursive.
+.claude
+.cursor
+.worktreeinclude
+.gitlab
+.gitlab-ci.yml
+.github/chainguard
+.github/CODEOWNERS
+.github/workflows/changelog-to-confluence.yml
+.github/workflows/deploy-docs.yml
+.github/workflows/sync-upstream.yml
+CHANGELOG.md
+Dockerfile
+LEGAL
+SYNC.md
+docs/REVIEW.md
+openobserve-patches
+packages/prd
+repository.datadog.yml
+scripts/openobserve
+static-analysis.datadog.yml
