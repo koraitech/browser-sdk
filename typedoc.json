@@ -1,0 +1,79 @@
+{
+  "entryPoints": [
+    "packages/*",
+    "packages/browser-rum-react/react-router-v6",
+    "packages/browser-rum-react/react-router-v7",
+    "packages/browser-rum-vue/vue-router-v4"
+  ],
+  "entryPointStrategy": "packages",
+  "includeVersion": true,
+  "exclude": [
+    "packages/browser-core",
+    "packages/browser-rum-core",
+    "packages/browser-worker",
+    "packages/browser-debugger"
+  ],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "rewrittenLink": true,
+    "notDocumented": false,
+    "unusedMergeModuleWith": true
+  },
+  "visibilityFilters": {}, // disable all visibility filters
+  "customCss": "./typedoc.css",
+  "hideGenerator": true,
+  "includeHierarchySummary": true,
+  "navigation": {
+    "includeCategories": true
+  },
+  "packageOptions": {
+    "excludeInternal": true,
+
+    "categoryOrder": [
+      "Init",
+      "Main",
+      "Authentication",
+      "Privacy",
+      "Data Collection",
+      "Error",
+      "Session Replay",
+      "Tracing",
+      "Profiling",
+      "Session Persistence",
+      "Transport",
+      "Beta",
+      "*",
+      "Other"
+    ],
+
+    "kindSortOrder": [
+      "Reference",
+      "Project",
+      "Module",
+      "Namespace",
+      "Enum",
+      "EnumMember",
+      "Class",
+      "Function",
+      "Constructor",
+      "Property",
+      "Variable",
+      "Accessor",
+      "Method",
+      "Parameter",
+      "Interface",
+      "TypeAlias",
+      "TypeParameter",
+      "TypeLiteral",
+      "CallSignature",
+      "ConstructorSignature",
+      "IndexSignature",
+      "GetSignature",
+      "SetSignature"
+    ]
+  },
+  "externalSymbolLinkMappings": {
+    "@types/react": { "*": "#" }
+  }
+}

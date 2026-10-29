@@ -1,0 +1,309 @@
+import assert from 'node:assert/strict'
+import { beforeEach, before, describe, it, mock } from 'node:test'
+import path from 'node:path'
+import type { CommandDetail } from './lib/testHelpers.ts'
+import {
+  mockModule,
+  mockCommandImplementation,
+  replaceChunkHashes,
+  FAKE_AWS_ENV_CREDENTIALS,
+  FAKE_CHUNK_HASH,
+} from './lib/testHelpers.ts'
+
+interface PullRequest {
+  ['number']: number
+}
+
+describe('deploy', () => {
+  const commandMock = mock.fn()
+  const fetchPRMock = mock.fn<() => Promise<PullRequest>>()
+  let deploy: (env: string, version: string, uploadPathTypes: string[]) => Promise<void>
+  const env = FAKE_AWS_ENV_CREDENTIALS
+
+  let commands: CommandDetail[]
+
+  function getS3Commands(): CommandDetail[] {
+    return commands.filter(({ command }) => command.includes('aws s3 cp')).map(replaceChunkHashes)
+  }
+
+  function getCloudfrontCommands(): CommandDetail[] {
+    return commands
+      .filter(({ command }) => command.includes('aws cloudfront create-invalidation'))
+      .map(replaceChunkHashes)
+  }
+
+  before(async () => {
+    await mockModule(path.resolve(import.meta.dirname, '../lib/command.ts'), { command: commandMock })
+    await mockModule(path.resolve(import.meta.dirname, '../lib/gitUtils.ts'), { fetchPR: fetchPRMock })
+
+    // This MUST be a dynamic import because that is the only way to ensure the
+    // import starts after the mock has been set up.
+    ;({ main: deploy } = await import('./deploy.ts'))
+  })
+
+  beforeEach(() => {
+    commands = mockCommandImplementation(commandMock)
+  })
+
+  it('should deploy root packages', async () => {
+    await deploy('prod', 'v6', ['root'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        // Logs bundle
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-prod/korai-logs-v6.js',
+        env,
+      },
+      {
+        // Profiler chunk
+        command: `aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        // RUM chunks: We don't suffix chunk names as they are referenced by the main bundle. Renaming them would require updates via Webpack, adding unnecessary complexity for minimal value.
+        command: `aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      // RUM bundle
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-prod/korai-rum-v6.js',
+        env,
+      },
+      // RUM slim bundle
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-prod/korai-rum-slim-v6.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-prod/datadog-debugger-v6.js',
+        env,
+      },
+    ])
+
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id EGB08BYCT1DD9 --paths /korai-logs-v6.js,/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/korai-rum-v6.js,/korai-rum-slim-v6.js,/datadog-debugger-v6.js`,
+        env,
+      },
+    ])
+  })
+
+  it('should deploy datacenter packages', async () => {
+    await deploy('prod', 'v6', ['us1'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-prod/us1/v6/korai-logs.js',
+        env,
+      },
+      // RUM Profiler Chunk
+      {
+        command: `aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/us1/v6/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/us1/v6/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-prod/us1/v6/korai-rum.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-prod/us1/v6/korai-rum-slim.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=14400, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-prod/us1/v6/datadog-debugger.js',
+        env,
+      },
+    ])
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id EGB08BYCT1DD9 --paths /us1/v6/korai-logs.js,/us1/v6/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/us1/v6/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/us1/v6/korai-rum.js,/us1/v6/korai-rum-slim.js,/us1/v6/datadog-debugger.js`,
+        env,
+      },
+    ])
+  })
+
+  it('should deploy staging packages', async () => {
+    await deploy('staging', 'staging', ['root'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-staging/korai-logs-staging.js',
+        env,
+      },
+      // RUM Profiler Chunk
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-staging/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-staging/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-staging/korai-rum-staging.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-staging/korai-rum-slim-staging.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-staging/datadog-debugger-staging.js',
+        env,
+      },
+    ])
+
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id E2FP11ZSCFD3EU --paths /korai-logs-staging.js,/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/korai-rum-staging.js,/korai-rum-slim-staging.js,/datadog-debugger-staging.js`,
+        env,
+      },
+    ])
+  })
+
+  it('should deploy canary packages', async () => {
+    await deploy('prod', 'canary', ['root'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-prod/korai-logs-canary.js',
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-prod/korai-rum-canary.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-prod/korai-rum-slim-canary.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-prod/datadog-debugger-canary.js',
+        env,
+      },
+    ])
+
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id EGB08BYCT1DD9 --paths /korai-logs-canary.js,/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/korai-rum-canary.js,/korai-rum-slim-canary.js,/datadog-debugger-canary.js`,
+        env,
+      },
+    ])
+  })
+
+  it('should deploy next major canary packages', async () => {
+    await deploy('prod', 'v7-canary', ['root'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-prod/korai-logs-v7-canary.js',
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-prod/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-prod/korai-rum-v7-canary.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-prod/korai-rum-slim-v7-canary.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-prod/datadog-debugger-v7-canary.js',
+        env,
+      },
+    ])
+
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id EGB08BYCT1DD9 --paths /korai-logs-v7-canary.js,/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/korai-rum-v7-canary.js,/korai-rum-slim-v7-canary.js,/datadog-debugger-v7-canary.js`,
+        env,
+      },
+    ])
+  })
+
+  it('should deploy PR packages', async () => {
+    // mock the PR number fetch
+    fetchPRMock.mock.mockImplementation(() => Promise.resolve({ ['number']: 123 }))
+
+    await deploy('staging', 'pull-request', ['pull-request'])
+
+    assert.deepEqual(getS3Commands(), [
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-logs/bundle/korai-logs.js s3://browser-agent-artifacts-staging/pull-request/123/korai-logs.js',
+        env,
+      },
+      // RUM Profiler Chunk
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-staging/pull-request/123/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command: `aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js s3://browser-agent-artifacts-staging/pull-request/123/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js`,
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum/bundle/korai-rum.js s3://browser-agent-artifacts-staging/pull-request/123/korai-rum.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-rum-slim/bundle/korai-rum-slim.js s3://browser-agent-artifacts-staging/pull-request/123/korai-rum-slim.js',
+        env,
+      },
+      {
+        command:
+          'aws s3 cp --cache-control max-age=900, s-maxage=60 --content-type text/javascript packages/browser-debugger/bundle/datadog-debugger.js s3://browser-agent-artifacts-staging/pull-request/123/datadog-debugger.js',
+        env,
+      },
+    ])
+
+    assert.deepEqual(getCloudfrontCommands(), [
+      {
+        command: `aws cloudfront create-invalidation --distribution-id E2FP11ZSCFD3EU --paths /pull-request/123/korai-logs.js,/pull-request/123/chunks/profiler-${FAKE_CHUNK_HASH}-korai-rum.js,/pull-request/123/chunks/recorder-${FAKE_CHUNK_HASH}-korai-rum.js,/pull-request/123/korai-rum.js,/pull-request/123/korai-rum-slim.js,/pull-request/123/datadog-debugger.js`,
+        env,
+      },
+    ])
+  })
+})

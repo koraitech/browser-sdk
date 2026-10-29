@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "importHelpers": false,
+    "moduleResolution": "bundler",
+    "module": "ES2020",
+    "resolveJsonModule": true,
+    "strict": true,
+    "target": "ES2020",
+    "sourceMap": true,
+    "jsx": "react",
+    "allowJs": true,
+    "skipLibCheck": true,
+
+    "types": [],
+    "lib": ["ES2020", "DOM", "WebWorker"],
+
+    "paths": {
+      "@koraitech/browser-core": ["./packages/browser-core/src"],
+
+      "@koraitech/browser-logs": ["./packages/browser-logs/src/entries/main"],
+
+      "@koraitech/browser-rum-core": ["./packages/browser-rum-core/src"],
+
+      "@koraitech/browser-rum": ["./packages/browser-rum/src/entries/main"],
+      "@koraitech/browser-rum/internal": ["./packages/browser-rum/src/entries/internal"],
+      "@koraitech/browser-rum/internal-synthetics": ["./packages/browser-rum/src/entries/internalSynthetics"],
+
+      "@koraitech/browser-rum-slim": ["./packages/browser-rum-slim/src/entries/main"],
+
+      "@koraitech/browser-rum-react": ["./packages/browser-rum-react/src/entries/main"],
+      "@koraitech/browser-rum-react/internal": ["./packages/browser-rum-react/src/entries/internal"],
+      "@koraitech/browser-rum-react/react-router-v6": ["./packages/browser-rum-react/src/entries/reactRouterV6"],
+      "@koraitech/browser-rum-react/react-router-v7": ["./packages/browser-rum-react/src/entries/reactRouterV7"],
+      "@koraitech/browser-rum-react/tanstack-router": ["./packages/browser-rum-react/src/entries/tanstackRouter"],
+
+      "@koraitech/browser-rum-vue": ["./packages/browser-rum-vue/src/entries/main"],
+      "@koraitech/browser-rum-vue/vue-router-v4": ["./packages/browser-rum-vue/src/entries/vueRouter"],
+
+      "@koraitech/browser-rum-nuxt": ["./packages/browser-rum-nuxt/src/entries/main"],
+
+      "@koraitech/browser-rum-nextjs": ["./packages/browser-rum-nextjs/src/entries/main"],
+
+      "@koraitech/browser-worker": ["./packages/browser-worker/src/entries/main"],
+
+      "@koraitech/browser-debugger": ["./packages/browser-debugger/src/entries/main"],
+
+      "@koraitech/js-core/assembly": ["./packages/js-core/src/entries/assembly"],
+      "@koraitech/js-core/time": ["./packages/js-core/src/entries/time"],
+      "@koraitech/js-core/monitor": ["./packages/js-core/src/entries/monitor"],
+      "@koraitech/js-core/util": ["./packages/js-core/src/entries/util"]
+    }
+  }
+}

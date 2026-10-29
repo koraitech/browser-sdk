@@ -1,0 +1,499 @@
+import assert from 'node:assert/strict'
+import path from 'node:path'
+import { beforeEach, before, describe, it, mock, afterEach } from 'node:test'
+import type { Datacenter } from '../lib/datacenter.ts'
+import { mockModule, mockCommandImplementation, replaceChunkHashes, mockFetchHandlingError } from './lib/testHelpers.ts'
+
+const FAKE_API_KEY = 'FAKE_API_KEY'
+const ORG2_API_KEY = 'ORG2_API_KEY'
+const ENV_STAGING = {
+  DATADOG_API_KEY: FAKE_API_KEY,
+  OPENOBSERVE_SITE: 'datad0g.com',
+}
+const ENV_PROD = {
+  DATADOG_API_KEY: FAKE_API_KEY,
+  OPENOBSERVE_SITE: 'datadoghq.com',
+}
+const ENV_ORG2_PROD = {
+  DATADOG_API_KEY: ORG2_API_KEY,
+  OPENOBSERVE_SITE: 'datadoghq.com',
+}
+
+interface CommandDetail {
+  command: string
+  env?: Record<string, string>
+}
+
+describe('upload-source-maps', () => {
+  const commandMock = mock.fn()
+  const fetchHandlingErrorMock = mock.fn()
+  let commands: CommandDetail[]
+
+  let uploadSourceMaps: (version: string, uploadPathTypes: string[]) => Promise<void>
+  let getAllDatacentersMetadata: () => Promise<Datacenter[]>
+
+  function getSourceMapCommands(): CommandDetail[] {
+    return commands.filter(
+      ({ command, env }) => command.includes('datadog-ci sourcemaps') && env?.DATADOG_API_KEY === FAKE_API_KEY
+    )
+  }
+
+  function getOrg2SourceMapCommands(): CommandDetail[] {
+    return commands.filter(
+      ({ command, env }) => command.includes('datadog-ci sourcemaps') && env?.DATADOG_API_KEY === ORG2_API_KEY
+    )
+  }
+
+  function getFileRenamingCommands(): CommandDetail[] {
+    return commands.filter(({ command }) => command.includes('mv')).map(replaceChunkHashes)
+  }
+
+  before(async () => {
+    mockFetchHandlingError(fetchHandlingErrorMock)
+    await mockModule(path.resolve(import.meta.dirname, '../lib/command.ts'), { command: commandMock })
+    await mockModule(path.resolve(import.meta.dirname, '../lib/executionUtils.ts'), {
+      fetchHandlingError: fetchHandlingErrorMock,
+    })
+    await mockModule(path.resolve(import.meta.dirname, '../lib/secrets.ts'), {
+      getTelemetryOrgApiKey: () => FAKE_API_KEY,
+      getOrg2ApiKey: () => ORG2_API_KEY,
+    })
+
+    // These MUST be dynamic imports because that is the only way to ensure the
+    // import starts after the mock has been set up.
+    const uploadModule = await import('./upload-source-maps.ts')
+    uploadSourceMaps = uploadModule.main
+    const datacenterModule = await import('../lib/datacenter.ts')
+    getAllDatacentersMetadata = datacenterModule.getAllDatacentersMetadata
+  })
+
+  beforeEach(() => {
+    commands = mockCommandImplementation(commandMock)
+  })
+
+  afterEach(() => {
+    mock.restoreAll()
+  })
+
+  async function forEachDatacenter(callback: (site: string) => void): Promise<void> {
+    const datacenters = await getAllDatacentersMetadata()
+    for (const datacenter of datacenters) {
+      callback(datacenter.site)
+    }
+  }
+
+  it('should upload root packages source maps', async () => {
+    await uploadSourceMaps('v6', ['root'])
+
+    await forEachDatacenter((site) => {
+      const commandsByDatacenter = commands.filter(
+        ({ env }) => env?.OPENOBSERVE_SITE === site && env?.DATADOG_API_KEY === FAKE_API_KEY
+      )
+      const env = { DATADOG_API_KEY: FAKE_API_KEY, OPENOBSERVE_SITE: site }
+
+      // rename the files with the version suffix
+      assert.deepEqual(getFileRenamingCommands(), [
+        {
+          command: 'mv packages/browser-logs/bundle/korai-logs.js packages/browser-logs/bundle/korai-logs-v6.js',
+        },
+        {
+          command:
+            'mv packages/browser-logs/bundle/korai-logs.js.map packages/browser-logs/bundle/korai-logs-v6.js.map',
+        },
+        {
+          command: 'mv packages/browser-rum/bundle/korai-rum.js packages/browser-rum/bundle/korai-rum-v6.js',
+        },
+        {
+          command: 'mv packages/browser-rum/bundle/korai-rum.js.map packages/browser-rum/bundle/korai-rum-v6.js.map',
+        },
+        {
+          command:
+            'mv packages/browser-rum-slim/bundle/korai-rum-slim.js packages/browser-rum-slim/bundle/korai-rum-slim-v6.js',
+        },
+        {
+          command:
+            'mv packages/browser-rum-slim/bundle/korai-rum-slim.js.map packages/browser-rum-slim/bundle/korai-rum-slim-v6.js.map',
+        },
+        {
+          command:
+            'mv packages/browser-debugger/bundle/datadog-debugger.js packages/browser-debugger/bundle/datadog-debugger-v6.js',
+        },
+        {
+          command:
+            'mv packages/browser-debugger/bundle/datadog-debugger.js.map packages/browser-debugger/bundle/datadog-debugger-v6.js.map',
+        },
+      ])
+
+      // upload the source maps
+      assert.deepEqual(commandsByDatacenter, [
+        {
+          command:
+            'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+          env,
+        },
+        {
+          command:
+            'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+          env,
+        },
+        {
+          command:
+            'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+          env,
+        },
+        {
+          command:
+            'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+          env,
+        },
+      ])
+    })
+
+    // upload the source maps to org2
+    assert.deepEqual(getOrg2SourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+    ])
+  })
+
+  it('should upload datacenter packages source maps', async () => {
+    await uploadSourceMaps('v6', ['us1'])
+
+    assert.deepEqual(getSourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix /us1/v6 --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix /us1/v6 --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix /us1/v6 --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix /us1/v6 --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+    ])
+
+    assert.deepEqual(getOrg2SourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net/us1/v6 --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net/us1/v6 --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net/us1/v6 --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net/us1/v6 --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+    ])
+  })
+
+  it('should upload staging packages source maps', async () => {
+    await uploadSourceMaps('staging', ['root'])
+
+    // rename the files with the version suffix
+    assert.deepEqual(getFileRenamingCommands(), [
+      {
+        command: 'mv packages/browser-logs/bundle/korai-logs.js packages/browser-logs/bundle/korai-logs-staging.js',
+      },
+      {
+        command:
+          'mv packages/browser-logs/bundle/korai-logs.js.map packages/browser-logs/bundle/korai-logs-staging.js.map',
+      },
+      {
+        command: 'mv packages/browser-rum/bundle/korai-rum.js packages/browser-rum/bundle/korai-rum-staging.js',
+      },
+      {
+        command: 'mv packages/browser-rum/bundle/korai-rum.js.map packages/browser-rum/bundle/korai-rum-staging.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js packages/browser-rum-slim/bundle/korai-rum-slim-staging.js',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js.map packages/browser-rum-slim/bundle/korai-rum-slim-staging.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js packages/browser-debugger/bundle/datadog-debugger-staging.js',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js.map packages/browser-debugger/bundle/datadog-debugger-staging.js.map',
+      },
+    ])
+
+    // upload the source maps
+    assert.deepEqual(getSourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_STAGING,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_STAGING,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_STAGING,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_STAGING,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+    ])
+
+    assert.deepEqual(getOrg2SourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+    ])
+  })
+
+  it('should upload canary packages source maps', async () => {
+    await uploadSourceMaps('canary', ['root'])
+
+    // rename the files with the version suffix
+    assert.deepEqual(getFileRenamingCommands(), [
+      {
+        command: 'mv packages/browser-logs/bundle/korai-logs.js packages/browser-logs/bundle/korai-logs-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-logs/bundle/korai-logs.js.map packages/browser-logs/bundle/korai-logs-canary.js.map',
+      },
+      {
+        command: 'mv packages/browser-rum/bundle/korai-rum.js packages/browser-rum/bundle/korai-rum-canary.js',
+      },
+      {
+        command: 'mv packages/browser-rum/bundle/korai-rum.js.map packages/browser-rum/bundle/korai-rum-canary.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js packages/browser-rum-slim/bundle/korai-rum-slim-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js.map packages/browser-rum-slim/bundle/korai-rum-slim-canary.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js packages/browser-debugger/bundle/datadog-debugger-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js.map packages/browser-debugger/bundle/datadog-debugger-canary.js.map',
+      },
+    ])
+
+    // upload the source maps only to datadoghq.com
+    assert.deepEqual(getSourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+    ])
+
+    assert.deepEqual(getOrg2SourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+    ])
+  })
+
+  it('should upload versioned canary packages source maps (e.g. v7-canary)', async () => {
+    await uploadSourceMaps('v7-canary', ['root'])
+
+    // rename the files with the version suffix
+    assert.deepEqual(getFileRenamingCommands(), [
+      {
+        command: 'mv packages/browser-logs/bundle/korai-logs.js packages/browser-logs/bundle/korai-logs-v7-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-logs/bundle/korai-logs.js.map packages/browser-logs/bundle/korai-logs-v7-canary.js.map',
+      },
+      {
+        command: 'mv packages/browser-rum/bundle/korai-rum.js packages/browser-rum/bundle/korai-rum-v7-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-rum/bundle/korai-rum.js.map packages/browser-rum/bundle/korai-rum-v7-canary.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js packages/browser-rum-slim/bundle/korai-rum-slim-v7-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-rum-slim/bundle/korai-rum-slim.js.map packages/browser-rum-slim/bundle/korai-rum-slim-v7-canary.js.map',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js packages/browser-debugger/bundle/datadog-debugger-v7-canary.js',
+      },
+      {
+        command:
+          'mv packages/browser-debugger/bundle/datadog-debugger.js.map packages/browser-debugger/bundle/datadog-debugger-v7-canary.js.map',
+      },
+    ])
+
+    // upload the source maps only to datadoghq.com (same as plain 'canary')
+    assert.deepEqual(getSourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix / --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_PROD,
+      },
+    ])
+
+    assert.deepEqual(getOrg2SourceMapCommands(), [
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-logs/bundle --service browser-logs-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-logs/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-rum-slim/bundle --service browser-rum-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-rum-slim/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+      {
+        command:
+          'datadog-ci sourcemaps upload packages/browser-debugger/bundle --service browser-debugger-sdk --release-version dev --minified-path-prefix https://d20xtzwzcl0ceb.cloudfront.net --project-path @koraitech/browser-debugger/ --repository-url https://www.github.com/datadog/browser-sdk',
+        env: ENV_ORG2_PROD,
+      },
+    ])
+  })
+})

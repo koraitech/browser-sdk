@@ -1,0 +1,5 @@
+// This configuration file is used as a base documentation for building packages with webpack.
+{
+  "extends": "./tsconfig.base.json",
+  "files": []
+}

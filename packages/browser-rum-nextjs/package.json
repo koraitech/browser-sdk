@@ -1,0 +1,51 @@
+{
+  "name": "@koraitech/browser-rum-nextjs",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "main": "cjs/entries/main.js",
+  "module": "esm/entries/main.mjs",
+  "types": "cjs/entries/main.d.ts",
+  "files": [
+    "cjs",
+    "esm",
+    "src",
+    "!src/**/*.spec.*",
+    "!src/**/*.specHelper.*"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build/build-package.ts --modules",
+    "prepack": "yarn build"
+  },
+  "dependencies": {
+    "@koraitech/browser-core": "0.1.0",
+    "@koraitech/browser-rum-core": "0.1.0",
+    "@koraitech/browser-rum-react": "0.1.0",
+    "@koraitech/js-core": "0.1.0"
+  },
+  "peerDependencies": {
+    "next": ">=13.0.0",
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koraitech/browser-sdk.git",
+    "directory": "packages/browser-rum-nextjs"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  }
+}

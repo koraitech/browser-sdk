@@ -1,0 +1,48 @@
+{
+  "name": "nextjs",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "start": "next start --port 0"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "peerDependencies": {
+    "@koraitech/browser-rum": "*",
+    "@koraitech/browser-rum-nextjs": "*",
+    "@koraitech/browser-rum-react": "*"
+  },
+  "peerDependenciesMeta": {
+    "@koraitech/browser-rum": {
+      "optional": true
+    },
+    "@koraitech/browser-rum-nextjs": {
+      "optional": true
+    },
+    "@koraitech/browser-rum-react": {
+      "optional": true
+    }
+  },
+  "resolutions": {
+    "@koraitech/browser-rum-core": "file:../../../packages/browser-rum-core/package.tgz",
+    "@koraitech/browser-core": "file:../../../packages/browser-core/package.tgz",
+    "@koraitech/js-core": "file:../../../packages/js-core/package.tgz",
+    "@koraitech/browser-rum": "file:../../../packages/browser-rum/package.tgz",
+    "@koraitech/browser-rum-nextjs": "file:../../../packages/browser-rum-nextjs/package.tgz",
+    "@koraitech/browser-rum-react": "file:../../../packages/browser-rum-react/package.tgz",
+    "@koraitech/browser-rum-slim": "file:../../../packages/browser-rum-slim/package.tgz",
+    "@koraitech/browser-worker": "file:../../../packages/browser-worker/package.tgz"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "6.0.3"
+  },
+  "volta": {
+    "extends": "../../../package.json"
+  }
+}

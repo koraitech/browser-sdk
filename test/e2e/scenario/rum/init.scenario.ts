@@ -1,0 +1,462 @@
+import type { Context } from '@koraitech/browser-core'
+import { test, expect } from '@playwright/test'
+import type { IntakeRegistry, BrowserLog } from '../../lib/framework'
+import { createTest, createWorker } from '../../lib/framework'
+import { isPinnedRuntime } from '../../lib/helpers/browser'
+
+test.describe('API calls and events around init', () => {
+  createTest('should display a console log when calling init without configuration')
+    .withRum()
+    .withRumInit(() => {
+      ;(window.KORAI_RUM! as unknown as { init(): void }).init()
+    })
+    .run(({ withBrowserLogs }) => {
+      withBrowserLogs((logs) => {
+        expect(logs).toHaveLength(1)
+        expect(logs[0].message).toEqual(expect.stringContaining('Datadog Browser SDK'))
+        expect(logs[0].message).toEqual(expect.stringContaining('Missing configuration'))
+      })
+    })
+
+  createTest('should be associated to corresponding views when views are automatically tracked')
+    .withRum()
+    .withRumSlim()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.addError('before manual view')
+      window.KORAI_RUM!.addAction('before manual view')
+      window.KORAI_RUM!.addTiming('before manual view')
+
+      setTimeout(() => window.KORAI_RUM!.startView('manual view'), 10)
+
+      setTimeout(() => {
+        window.KORAI_RUM!.addError('after manual view')
+        window.KORAI_RUM!.addAction('after manual view')
+        window.KORAI_RUM!.addTiming('after manual view')
+      }, 20)
+
+      setTimeout(() => window.KORAI_RUM!.init(configuration), 30)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const initialView = intakeRegistry.rumViewEvents[0]
+      expect(initialView.view.name).toBeUndefined()
+      expect(initialView.view.custom_timings).toEqual({
+        before_manual_view: expect.any(Number),
+      })
+
+      const manualView = intakeRegistry.rumViewEvents[1]
+      expect(manualView.view.name).toBe('manual view')
+      expect(manualView.view.custom_timings).toEqual({
+        after_manual_view: expect.any(Number),
+      })
+
+      const documentEvent = intakeRegistry.rumResourceEvents.find((event) => event.resource.type === 'document')!
+      expect(documentEvent.view.id).toBe(initialView.view.id)
+
+      expectToHaveErrors(
+        intakeRegistry,
+        { message: 'Provided "before manual view"', viewId: initialView.view.id },
+        { message: 'Provided "after manual view"', viewId: manualView.view.id }
+      )
+
+      expectToHaveActions(
+        intakeRegistry,
+        { name: 'before manual view', viewId: initialView.view.id },
+        { name: 'after manual view', viewId: manualView.view.id }
+      )
+    })
+
+  createTest('should be associated to corresponding views when views are manually tracked')
+    .withRum({ trackViewsManually: true })
+    .withRumSlim()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.addError('before init')
+      window.KORAI_RUM!.addAction('before init')
+      window.KORAI_RUM!.addTiming('before init')
+
+      setTimeout(() => window.KORAI_RUM!.init(configuration), 10)
+      setTimeout(() => {
+        window.KORAI_RUM!.addError('before manual view')
+        window.KORAI_RUM!.addAction('before manual view')
+        window.KORAI_RUM!.addTiming('before manual view')
+      }, 20)
+
+      setTimeout(() => window.KORAI_RUM!.startView('manual view'), 30)
+
+      setTimeout(() => {
+        window.KORAI_RUM!.addError('after manual view')
+        window.KORAI_RUM!.addAction('after manual view')
+        window.KORAI_RUM!.addTiming('after manual view')
+        window.KORAI_RUM!.setViewName('after manual view')
+      }, 40)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const initialView = intakeRegistry.rumViewEvents[0]
+      expect(initialView.view.name).toBe('after manual view')
+      expect(initialView.view.custom_timings).toEqual({
+        before_init: expect.any(Number),
+        before_manual_view: expect.any(Number),
+        after_manual_view: expect.any(Number),
+      })
+
+      const documentEvent = intakeRegistry.rumResourceEvents.find((event) => event.resource.type === 'document')!
+      expect(documentEvent.view.id).toBe(initialView.view.id)
+
+      expectToHaveErrors(
+        intakeRegistry,
+        { message: 'Provided "before init"', viewId: initialView.view.id },
+        { message: 'Provided "before manual view"', viewId: initialView.view.id },
+        { message: 'Provided "after manual view"', viewId: initialView.view.id }
+      )
+
+      expectToHaveActions(
+        intakeRegistry,
+        { name: 'before init', viewId: initialView.view.id },
+        { name: 'before manual view', viewId: initialView.view.id },
+        { name: 'after manual view', viewId: initialView.view.id, viewName: 'after manual view' }
+      )
+    })
+
+  createTest('should use the provided url option instead of location')
+    .withRum()
+    .withRumSlim()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.init(configuration)
+
+      setTimeout(
+        () =>
+          window.KORAI_RUM!.startView({
+            name: 'manual view',
+            url: 'https://example.com/overridden-path',
+          }),
+        10
+      )
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const manualView = intakeRegistry.rumViewEvents.find((event) => event.view.name === 'manual view')!
+      expect(manualView).toBeTruthy()
+      expect(manualView.view.url).toBe('https://example.com/overridden-path')
+    })
+
+  createTest('should be able to set view context')
+    .withRum()
+    .withRumSlim()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.init(configuration)
+      window.KORAI_RUM!.setViewContext({ foo: 'bar' })
+      window.KORAI_RUM!.setViewContextProperty('bar', 'foo')
+
+      // context should populate the context of the children events
+      window.KORAI_RUM!.addAction('custom action')
+      window.KORAI_RUM!.addError('custom error')
+
+      // context should not populate the context of the next view
+      setTimeout(() => window.KORAI_RUM!.startView('manual view'), 10)
+      setTimeout(() => {
+        window.KORAI_RUM!.addAction('after manual view')
+        window.KORAI_RUM!.addError('after manual view')
+      }, 20)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const initialView = intakeRegistry.rumViewEvents[0]
+      const nextView = intakeRegistry.rumViewEvents[1]
+
+      expect(initialView.context).toEqual(expect.objectContaining({ foo: 'bar', bar: 'foo' }))
+      expect(nextView.context!.foo).toBeUndefined()
+
+      expectToHaveActions(
+        intakeRegistry,
+        {
+          name: 'custom action',
+          viewId: initialView.view.id,
+          context: { foo: 'bar', bar: 'foo' },
+        },
+        {
+          name: 'after manual view',
+          viewId: nextView.view.id,
+        }
+      )
+      expectToHaveErrors(
+        intakeRegistry,
+        {
+          message: 'Provided "custom error"',
+          viewId: initialView.view.id,
+          context: { foo: 'bar', bar: 'foo' },
+        },
+        {
+          message: 'Provided "after manual view"',
+          viewId: nextView.view.id,
+        }
+      )
+    })
+
+  createTest('get the view context')
+    .withRum()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.init(configuration)
+      window.KORAI_RUM!.setViewContext({ foo: 'bar' })
+    })
+    .run(async ({ page }) => {
+      const viewContext = await page.evaluate(() => window.KORAI_RUM?.getViewContext())
+      expect(viewContext).toEqual({ foo: 'bar' })
+    })
+})
+
+test.describe('beforeSend', () => {
+  createTest('allows to edit events context with feature flag')
+    .withRum({
+      beforeSend: (event: any) => {
+        event.context!.foo = 'bar'
+        return true
+      },
+    })
+    .withRumSlim()
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const initialView = intakeRegistry.rumViewEvents[0]
+      expect(initialView.context).toEqual(expect.objectContaining({ foo: 'bar' }))
+      const initialDocument = intakeRegistry.rumResourceEvents[0]
+      expect(initialDocument.context).toEqual(expect.objectContaining({ foo: 'bar' }))
+    })
+
+  createTest('allows to replace events context')
+    .withRum({
+      beforeSend: (event) => {
+        event.context = { foo: 'bar' }
+        return true
+      },
+    })
+    .withRumSlim()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.init(configuration)
+      window.KORAI_RUM!.setGlobalContextProperty('foo', 'baz')
+      window.KORAI_RUM!.setGlobalContextProperty('zig', 'zag')
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      const initialView = intakeRegistry.rumViewEvents[0]
+      expect(initialView.context).toEqual(expect.objectContaining({ foo: 'bar' }))
+      const initialDocument = intakeRegistry.rumResourceEvents[0]
+      expect(initialDocument.context).toEqual(expect.objectContaining({ foo: 'bar' }))
+    })
+})
+
+test.describe('allowedTrackingOrigins', () => {
+  createTest('should not warn when allowedTrackingOrigins matches current domain')
+    .withRum()
+    .withRumInit((configuration) => {
+      const currentOrigin = window.location.origin
+      window.KORAI_RUM!.init({
+        ...configuration,
+        allowedTrackingOrigins: [currentOrigin],
+      })
+    })
+    .run(({ withBrowserLogs }) => {
+      withBrowserLogs((logs) => {
+        expect(logs).toHaveLength(0)
+      })
+    })
+
+  createTest('should not warn when allowedTrackingOrigins matches current domain with regex')
+    .withRum()
+    .withRumInit((configuration) => {
+      const currentOrigin = window.location.origin
+      const escapedOrigin = currentOrigin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      window.KORAI_RUM!.init({
+        ...configuration,
+        allowedTrackingOrigins: [new RegExp(`^${escapedOrigin}$`)],
+      })
+    })
+    .run(({ withBrowserLogs }) => {
+      withBrowserLogs((logs) => {
+        expect(logs).toHaveLength(0)
+      })
+    })
+
+  createTest('should not warn when allowedTrackingOrigins matches current domain with function')
+    .withRum()
+    .withRumInit((configuration) => {
+      const currentOrigin = window.location.origin
+      window.KORAI_RUM!.init({
+        ...configuration,
+        allowedTrackingOrigins: [(origin: string) => origin === currentOrigin],
+      })
+    })
+    .run(({ withBrowserLogs }) => {
+      withBrowserLogs((logs) => {
+        expect(logs).toHaveLength(0)
+      })
+    })
+
+  createTest('initializing RUM should not produce logs')
+    .withRum()
+    .run(({ withBrowserLogs }) => {
+      withBrowserLogs((logs) => {
+        expect(logs).toHaveLength(0)
+      })
+    })
+
+  createTest('should warn when allowedTrackingOrigins does not match current domain')
+    .withRum()
+    .withRumInit((configuration) => {
+      window.KORAI_RUM!.init({
+        ...configuration,
+        allowedTrackingOrigins: ['https://different-domain.com'],
+      })
+    })
+    .run(async ({ withBrowserLogs, intakeRegistry, flushEvents }) => {
+      await flushEvents()
+
+      withBrowserLogs((logs) => {
+        const errorLogs = logs.filter(
+          (log) => log.message.includes('SDK initialized on a non-allowed domain') && log.level === 'error'
+        )
+        expect(errorLogs).toHaveLength(1)
+      })
+
+      expect(intakeRegistry.rumViewEvents.length).toBe(0)
+    })
+})
+
+test.describe('Synthetics Browser Test', () => {
+  createTest('ignores init() call if Synthetics will inject its own instance of RUM')
+    .withRum()
+    .withRumInit((configuration) => {
+      ;(window as any)._O2_SYNTHETICS_INJECTS_RUM = true
+      window.KORAI_RUM!.init(configuration)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+      expect(intakeRegistry.rumViewEvents).toHaveLength(0)
+    })
+
+  createTest('enriches events with the synthetics context from the global variable')
+    .withRum()
+    .withRumInit((configuration) => {
+      ;(window as any)._O2_SYNTHETICS_RUM_CONTEXT = {
+        test_id: 'test-abc',
+        result_id: 'result-xyz',
+        run_type: 'scheduled',
+      }
+      window.KORAI_RUM!.init(configuration)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+      expect(intakeRegistry.rumViewEvents[0]).toEqual(
+        expect.objectContaining({
+          session: expect.objectContaining({ type: 'synthetics' }),
+          synthetics: {
+            test_id: 'test-abc',
+            result_id: 'result-xyz',
+            run_type: 'scheduled',
+            injected: false,
+          },
+        })
+      )
+    })
+
+  createTest('enriches events with the synthetics context from the cookie')
+    .withRum()
+    .withRumInit((configuration) => {
+      const context = { test_id: 'test-abc', result_id: 'result-xyz', run_type: 'scheduled' }
+      document.cookie = `openobserve-synthetics-rum-context=${encodeURIComponent(JSON.stringify(context))}`
+      window.KORAI_RUM!.init(configuration)
+    })
+    .run(async ({ intakeRegistry, flushEvents }) => {
+      await flushEvents()
+      expect(intakeRegistry.rumViewEvents[0]).toEqual(
+        expect.objectContaining({
+          session: expect.objectContaining({ type: 'synthetics' }),
+          synthetics: {
+            test_id: 'test-abc',
+            result_id: 'result-xyz',
+            run_type: 'scheduled',
+            injected: false,
+          },
+        })
+      )
+    })
+})
+
+test.describe('Service workers Rum', () => {
+  createTest('service worker with worker rum - esm')
+    .withWorker(createWorker().withRum())
+    .run(async ({ flushEvents, intakeRegistry, browserName, withBrowserLogs }) => {
+      test.skip(browserName !== 'chromium', 'Non-Chromium browsers do not support ES modules in Service Workers')
+
+      await flushEvents()
+
+      expect(intakeRegistry.rumEvents).toHaveLength(0)
+      withBrowserLogs((logs) => expectNoSessionWarning(browserName, logs))
+    })
+
+  createTest('service worker with worker rum - importScripts')
+    .withWorker(createWorker({ importScripts: true }).withRum())
+    .run(async ({ flushEvents, intakeRegistry, browserName, withBrowserLogs }) => {
+      test.skip(
+        browserName === 'webkit',
+        'BrowserStack overrides the localhost URL with bs-local.com and cannot be used to install a Service Worker'
+      )
+
+      await flushEvents()
+
+      expect(intakeRegistry.rumEvents).toHaveLength(0)
+      withBrowserLogs((logs) => expectNoSessionWarning(browserName, logs))
+    })
+})
+
+const NO_SESSION_WARNING = 'Korai Browser SDK: The RUM SDK is not supported in a web or service worker environment.'
+
+function expectNoSessionWarning(browserName: string, logs: BrowserLog[]) {
+  // Firefox does not propagate the service worker's console to the main page's console.
+  // The pinned Playwright runtime doesn't either.
+  if (browserName !== 'firefox' && !isPinnedRuntime(test)) {
+    expect(logs.filter((log) => log.message.includes(NO_SESSION_WARNING) && log.level === 'warning')).toHaveLength(1)
+  }
+
+  expect(logs.filter((log) => log.level === 'error')).toHaveLength(0)
+}
+
+function expectToHaveErrors(
+  events: IntakeRegistry,
+  ...errors: Array<{ message: string; viewId: string; context?: Context }>
+) {
+  expect(events.rumErrorEvents).toHaveLength(errors.length)
+  for (let i = 0; i < errors.length; i++) {
+    const registryError = events.rumErrorEvents[i]
+    const expectedError = errors[i]
+    expect(registryError.error.message).toBe(expectedError.message)
+    expect(registryError.view.id).toBe(expectedError.viewId)
+    if (expectedError.context) {
+      expect(registryError.context).toEqual(expect.objectContaining(expectedError.context))
+    }
+  }
+}
+
+function expectToHaveActions(
+  events: IntakeRegistry,
+  ...actions: Array<{ name: string; viewId: string; viewName?: string; context?: Context }>
+) {
+  expect(events.rumActionEvents).toHaveLength(actions.length)
+  for (let i = 0; i < actions.length; i++) {
+    const registryAction = events.rumActionEvents[i]
+    const expectedAction = actions[i]
+    expect(registryAction.action.target!.name).toBe(expectedAction.name)
+    expect(registryAction.view.id).toBe(expectedAction.viewId)
+    if (i === 0 && expectedAction.viewName) {
+      expect(registryAction.view.name).toBe(expectedAction.viewName)
+    }
+    if (expectedAction.context) {
+      expect(registryAction.context).toEqual(expect.objectContaining(expectedAction.context))
+    }
+  }
+}

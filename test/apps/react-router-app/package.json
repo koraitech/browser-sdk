@@ -1,0 +1,41 @@
+{
+  "name": "react-router-app",
+  "private": true,
+  "scripts": {
+    "build": "webpack"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router": "7.17.0"
+  },
+  "peerDependencies": {
+    "@koraitech/browser-rum": "*",
+    "@koraitech/browser-rum-react": "*"
+  },
+  "peerDependenciesMeta": {
+    "@koraitech/browser-rum": {
+      "optional": true
+    },
+    "@koraitech/browser-rum-react": {
+      "optional": true
+    }
+  },
+  "resolutions": {
+    "@koraitech/browser-rum-core": "file:../../../packages/browser-rum-core/package.tgz",
+    "@koraitech/browser-core": "file:../../../packages/browser-core/package.tgz",
+    "@koraitech/js-core": "file:../../../packages/js-core/package.tgz",
+    "@koraitech/browser-rum": "file:../../../packages/browser-rum/package.tgz",
+    "@koraitech/browser-rum-react": "file:../../../packages/browser-rum-react/package.tgz",
+    "@koraitech/browser-rum-slim": "file:../../../packages/browser-rum-slim/package.tgz",
+    "@koraitech/browser-worker": "file:../../../packages/browser-worker/package.tgz"
+  },
+  "devDependencies": {
+    "ts-loader": "9.6.0",
+    "typescript": "6.0.3",
+    "webpack": "5.107.2"
+  },
+  "volta": {
+    "extends": "../../../package.json"
+  }
+}

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -euo pipefail
+
+PATH="$PATH:node_modules/.bin"
+
+main () {
+  if [[ $# -lt 1 ]]; then
+    cmd_help
+  fi
+
+  local command="cmd_$1"
+  shift
+
+  "$command" "$@"
+}
+
+cmd_help () {
+  local available_commands=$(set | perl -nle'print $& while m{^cmd_\K\w+}g')
+  echo -e "Available commands:\n$available_commands"
+  exit 1
+}
+
+cmd_typecheck () {
+  local project_path="${1}"
+  tsc -p "$project_path" --noEmit true
+}
+
+
+cmd_woke () {
+  command -v woke || fail 'woke not installed, see https://github.com/get-woke/woke#installation'
+  woke --exit-1-on-failure
+}
+
+cmd_check_server_side_rendering_compatibility () {
+  yarn run pack
+  cd test/apps/vanilla
+  rm -rf node_modules
+  yarn install --no-immutable
+  yarn compat:ssr || fail 'server side rendering compatibility broken'
+}
+
+fail () {
+  echo
+  echo "❌ ${1}"
+  echo
+
+  exit 1
+}
+
+main "$@"

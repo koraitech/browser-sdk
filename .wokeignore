@@ -1,0 +1,7 @@
+**/dist/**
+yarn.lock
+.yarn/releases
+generated-docs
+
+# code import
+packages/browser-worker/src/domain/deflate.js

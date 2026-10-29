@@ -1,0 +1,26 @@
+import fs from 'fs'
+import path from 'path'
+
+const ROOT = path.join(__dirname, '../../../..')
+
+export function getSdkBundlePath(packageName: string, originalUrl: string) {
+  const bundlePath = path.join(ROOT, `packages/${packageName}/bundle${originalUrl}`)
+  if (!fs.existsSync(bundlePath)) {
+    throw new Error(`SDK bundle not found at ${bundlePath}. Did you run "yarn build"?`)
+  }
+  return bundlePath
+}
+
+export function getTestAppBundlePath(appName: string, originalUrl: string) {
+  const appNameMapping: Record<string, string> = {
+    app: 'apps/vanilla',
+    'react-router-v6-app': 'apps/react-router-v6-app',
+    'react-router-app': 'apps/react-router-app',
+    'angular-app': 'apps/angular-app',
+    'tanstack-router-app': 'apps/tanstack-router-app',
+    microfrontend: 'apps/microfrontend',
+  }
+
+  const targetAppPath = appNameMapping[appName] || appName
+  return path.join(ROOT, `test/${targetAppPath}/dist${originalUrl}`)
+}

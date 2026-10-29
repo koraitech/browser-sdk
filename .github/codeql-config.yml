@@ -1,0 +1,12 @@
+name: 'CodeQL config'
+
+paths:
+  - packages/core/src
+  - packages/logs/src
+  - packages/flagging/src
+  - packages/rum/src
+  - packages/rum-core/src
+  - packages/rum-slim/src
+  - packages/worker/src
+paths-ignore:
+  - '**/*.spec.ts'

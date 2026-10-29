@@ -1,0 +1,165 @@
+import type { SdkEvent } from '../../sdkEvent'
+import type { RumViewEvent, RumViewUpdateEvent } from '../../../../../packages/browser-rum-core/src/rumEvent.types'
+import { isRumViewEvent } from '../../sdkEvent'
+import type { FacetRegistry } from './facetRegistry'
+
+export interface EventFilters {
+  facetValuesFilter: FacetValuesFilter
+  query: string
+  outdatedVersions: boolean
+}
+
+export interface FacetValuesFilter {
+  type: 'include' | 'exclude'
+  facetValues: FacetValues
+}
+export interface FacetValues {
+  [facetPath: string]: string[]
+}
+
+export const DEFAULT_FILTERS: EventFilters = {
+  facetValuesFilter: { type: 'exclude', facetValues: {} },
+  query: '',
+  outdatedVersions: false,
+}
+
+export function applyEventFilters(filters: EventFilters, events: SdkEvent[], facetRegistry: FacetRegistry) {
+  let filteredEvents = events
+
+  filteredEvents = filterFacets(filteredEvents, filters.facetValuesFilter, facetRegistry)
+
+  if (filters.query) {
+    const queryParts: string[][] = parseQuery(filters.query)
+    const matchQuery = (event: SdkEvent) =>
+      queryParts.every((queryPart) => {
+        // Hack it to restore the whitespace
+        const searchTerm = queryPart.length > 1 ? queryPart[1].replaceAll(/\\\s+/gm, ' ') : ''
+        return matchQueryPart(event, queryPart[0], searchTerm)
+      })
+    filteredEvents = filteredEvents.filter(matchQuery)
+  }
+
+  if (!filters.outdatedVersions) {
+    filteredEvents = filterOutdatedVersions(filteredEvents)
+  } else {
+    filteredEvents = deduplicateViewAndViewUpdate(filteredEvents)
+  }
+
+  return filteredEvents
+}
+
+export function filterFacets(
+  events: SdkEvent[],
+  facetValuesFilter: FacetValuesFilter,
+  facetRegistry: FacetRegistry
+): SdkEvent[] {
+  const filteredFacetValueEntries = Object.entries(facetValuesFilter.facetValues)
+  if (filteredFacetValueEntries.length === 0) {
+    return events
+  }
+  const isIncludeType = facetValuesFilter.type === 'include'
+  return events.filter((event) =>
+    filteredFacetValueEntries[isIncludeType ? 'some' : 'every'](([facetPath, filteredValues]) => {
+      const eventValue = facetRegistry.getFieldValueForEvent(event, facetPath)
+      return isIncludeType === filteredValues.includes(eventValue as string)
+    })
+  )
+}
+
+function isRumViewUpdateEvent(event: SdkEvent): event is RumViewUpdateEvent {
+  return 'type' in event && event.type === 'view_update'
+}
+
+function filterOutdatedVersions(events: SdkEvent[]): SdkEvent[] {
+  const upToDateEvents = new Map<string, RumViewEvent>()
+  const outdatedEvents = new Set<SdkEvent>()
+
+  for (const event of events) {
+    if (isRumViewEvent(event)) {
+      const otherEvent = upToDateEvents.get(event.view.id)
+      if (!otherEvent) {
+        upToDateEvents.set(event.view.id, event)
+      } else if (otherEvent._o2.document_version < event._o2.document_version) {
+        upToDateEvents.set(event.view.id, event)
+        outdatedEvents.add(otherEvent)
+      } else {
+        outdatedEvents.add(event)
+      }
+    }
+  }
+
+  return events.filter((event) => !outdatedEvents.has(event) && !isRumViewUpdateEvent(event))
+}
+
+// When showing all versions, prefer view_update diffs over full views for the same document_version.
+// The initial view (no corresponding view_update) and the final view are always kept.
+function deduplicateViewAndViewUpdate(events: SdkEvent[]): SdkEvent[] {
+  const viewUpdateVersions = new Set<string>()
+  for (const event of events) {
+    if (isRumViewUpdateEvent(event) && event.view?.id && event._o2?.document_version) {
+      viewUpdateVersions.add(`${event.view.id}:${event._o2.document_version}`)
+    }
+  }
+
+  if (viewUpdateVersions.size === 0) {
+    return events
+  }
+
+  return events.filter((event) => {
+    if (isRumViewEvent(event) && viewUpdateVersions.has(`${event.view.id}:${event._o2.document_version}`)) {
+      return false
+    }
+    return true
+  })
+}
+
+export function parseQuery(query: string) {
+  const queryParts = query
+    .split(new RegExp('(?<!\\\\)\\s', 'g')) // Hack it to escape whitespace with backslashes
+    .filter((queryPart) => queryPart)
+    .map((queryPart) => queryPart.split(':'))
+
+  return queryParts
+}
+
+export function matchWithWildcard(value: string, searchTerm: string): boolean {
+  value = value.toLowerCase()
+  searchTerm = searchTerm.toLowerCase()
+  if (!searchTerm.includes('*')) {
+    return value.includes(searchTerm)
+  }
+  const searchTerms = searchTerm.toLowerCase().split('*')
+  let lastIndex = 0
+  for (const term of searchTerms) {
+    const index = value.indexOf(term, lastIndex)
+    if (index === -1) {
+      return false
+    }
+    lastIndex = index + term.length
+  }
+  return true
+}
+
+function matchQueryPart(json: unknown, searchKey: string, searchTerm: string, jsonPath = ''): boolean {
+  if (searchKey.toLowerCase() === 'description') {
+    return matchWithWildcard(JSON.stringify(json), searchTerm)
+  }
+  if (jsonPath.endsWith(searchKey) && matchWithWildcard(String(json), searchTerm)) {
+    return true
+  }
+
+  if (typeof json !== 'object') {
+    return false
+  }
+
+  for (const key in json) {
+    if (
+      Object.prototype.hasOwnProperty.call(json, key) &&
+      matchQueryPart((json as any)[key], searchKey, searchTerm, jsonPath ? `${jsonPath}.${key}` : key)
+    ) {
+      return true
+    }
+  }
+
+  return false
+}

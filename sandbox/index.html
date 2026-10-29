@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sandbox</title>
+    <script src="/korai-rum.js" crossorigin></script>
+    <script src="/korai-logs.js" crossorigin></script>
+    <script>
+      KORAI_RUM.init({
+        clientToken: 'xxx',
+        applicationId: 'xxx',
+        sessionReplaySampleRate: 100,
+        profilingSampleRate: 100,
+        trackResources: true,
+        trackLongTasks: true,
+        telemetrySampleRate: 100,
+        telemetryConfigurationSampleRate: 100,
+        telemetryUsageSampleRate: 100,
+        enableExperimentalFeatures: [],
+        proxy: '/proxy',
+      })
+      KORAI_LOGS.init({
+        clientToken: 'xxx',
+        telemetrySampleRate: 100,
+        telemetryConfigurationSampleRate: 100,
+        telemetryUsageSampleRate: 100,
+        enableExperimentalFeatures: [],
+        proxy: '/proxy',
+      })
+    </script>
+  </head>
+
+  <body></body>
+</html>

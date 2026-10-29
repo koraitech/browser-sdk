@@ -1,0 +1,154 @@
+import { test, expect } from '@playwright/test'
+import type { IntakeRegistry } from '../../lib/framework'
+import { createTest } from '../../lib/framework'
+
+test.describe('tracing', () => {
+  createTest('trace xhr')
+    .withRum({ service: 'service', allowedTracingUrls: ['LOCATION_ORIGIN'] })
+    .run(async ({ intakeRegistry, sendXhr, flushEvents }) => {
+      const rawHeaders = await sendXhr('/headers', [
+        ['x-foo', 'bar'],
+        ['x-foo', 'baz'],
+      ])
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers)
+      expect(headers['x-foo']).toBe('bar, baz')
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  createTest('trace fetch')
+    .withRum({ service: 'service', allowedTracingUrls: ['LOCATION_ORIGIN'] })
+    .run(async ({ intakeRegistry, flushEvents, page }) => {
+      const rawHeaders = await page.evaluate(() =>
+        window
+          .fetch('/headers', {
+            headers: [
+              ['x-foo', 'bar'],
+              ['x-foo', 'baz'],
+            ],
+          })
+          .then((response) => response.text())
+          .catch(() => new Error('Fetch request failed!'))
+      )
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers)
+      expect(headers['x-foo']).toBe('bar, baz')
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  createTest('trace fetch with Request argument')
+    .withRum({ service: 'service', allowedTracingUrls: ['LOCATION_ORIGIN'] })
+    .run(async ({ intakeRegistry, flushEvents, page }) => {
+      const rawHeaders = await page.evaluate(() =>
+        window
+          .fetch(new Request('/headers', { headers: { 'x-foo': 'bar, baz' } }))
+          .then((response) => response.text())
+          .catch(() => new Error('Fetch request failed!'))
+      )
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers)
+      expect(headers['x-foo']).toBe('bar, baz')
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  createTest('trace single argument fetch')
+    .withRum({ service: 'service', allowedTracingUrls: ['LOCATION_ORIGIN'] })
+    .run(async ({ intakeRegistry, flushEvents, page }) => {
+      const rawHeaders = await page.evaluate(() =>
+        window
+          .fetch('/headers')
+          .then((response) => response.text())
+          .catch(() => new Error('Fetch request failed!'))
+      )
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers)
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  createTest('propagate trace baggage with user and account')
+    .withRum({
+      service: 'service',
+      allowedTracingUrls: ['LOCATION_ORIGIN'],
+      enableExperimentalFeatures: ['user_account_trace_header'],
+    })
+    .run(async ({ intakeRegistry, flushEvents, page }) => {
+      await page.evaluate(() => {
+        window.KORAI_RUM!.setUser({ id: 'p1745' })
+        window.KORAI_RUM!.setAccount({ id: 'c9wpq8xrvd9t' })
+      })
+      const rawHeaders = await page.evaluate(() =>
+        window
+          .fetch('/headers')
+          .then((response) => response.text())
+          .catch(() => new Error('Fetch request failed!'))
+      )
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers)
+      expect(headers['baggage']).toMatch(/user\.id=p1745/)
+      expect(headers['baggage']).toMatch(/account\.id=c9wpq8xrvd9t/)
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  createTest('do not propagate trace baggage when disabled')
+    .withRum({
+      service: 'service',
+      allowedTracingUrls: ['LOCATION_ORIGIN'],
+      propagateTraceBaggage: false,
+    })
+    .run(async ({ intakeRegistry, flushEvents, page }) => {
+      const rawHeaders = await page.evaluate(() =>
+        window
+          .fetch('/headers')
+          .then((response) => response.text())
+          .catch(() => new Error('Fetch request failed!'))
+      )
+      const headers = parseHeaders(rawHeaders)
+      checkRequestHeaders(headers, { withBaggage: false })
+      await flushEvents()
+      checkTraceAssociatedToRumEvent(intakeRegistry)
+    })
+
+  interface ParsedHeaders {
+    [key: string]: string
+  }
+
+  function parseHeaders(rawHeaders: string | Error): ParsedHeaders {
+    expect(rawHeaders).not.toBeInstanceOf(Error)
+
+    if (rawHeaders instanceof Error) {
+      return {}
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return JSON.parse(rawHeaders)
+  }
+
+  // By default, we send both Datadog and W3C tracecontext headers, and baggage with session.id
+  function checkRequestHeaders(
+    headers: ParsedHeaders,
+    { withBaggage }: { withBaggage: boolean } = { withBaggage: true }
+  ) {
+    expect(headers['x-openobserve-trace-id']).toMatch(/\d+/)
+    expect(headers['x-openobserve-origin']).toBe('rum')
+    expect(headers['traceparent']).toMatch(/^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-01$/)
+    if (withBaggage) {
+      expect(headers['baggage']).toMatch(/session\.id=\S+/)
+    } else {
+      expect(headers['baggage']).toBeUndefined()
+    }
+  }
+
+  function checkTraceAssociatedToRumEvent(intakeRegistry: IntakeRegistry) {
+    const requests = intakeRegistry.rumResourceEvents.filter(
+      (event) => event.resource.type === 'xhr' || event.resource.type === 'fetch'
+    )
+    expect(requests).toHaveLength(1)
+    expect(requests[0]._o2.trace_id).toMatch(/\d+/)
+    expect(requests[0]._o2.span_id).toMatch(/\d+/)
+    expect(requests[0].resource.id).toBeDefined()
+  }
+})

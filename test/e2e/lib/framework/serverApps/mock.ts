@@ -1,0 +1,263 @@
+import type { ServerResponse } from 'http'
+import * as url from 'url'
+import cors from 'cors'
+import qs from 'qs'
+import express from 'express'
+import { getSdkBundlePath, getTestAppBundlePath } from '../sdkBuilds'
+import type { MockServerApp, Servers } from '../httpServers'
+import { DEV_SERVER_BASE_URL } from '../../helpers/playwright'
+import type { SetupOptions } from '../pageSetups'
+import { workerSetup } from '../pageSetups'
+
+export const LARGE_RESPONSE_MIN_BYTE_SIZE = 100_000
+
+export function createMockServerApp(servers: Servers, setup: string, setupOptions?: SetupOptions): MockServerApp {
+  const { remoteConfiguration, worker } = setupOptions ?? {}
+  const app = express()
+  let largeResponseBytesWritten = 0
+
+  app.use(cors())
+  app.disable('etag') // disable automatic resource caching
+
+  app.set('query parser', (str: string) => qs.parse(str))
+
+  app.get('/empty', (_req, res) => {
+    res.end()
+  })
+
+  app.get('/favicon.ico', (_req, res) => {
+    res.end()
+  })
+
+  app.get('/throw', (_req, res) => {
+    res.status(500).send('Server error')
+  })
+
+  app.get('/throw-large-response', (_req, res) => {
+    res.status(500)
+
+    const chunkText = 'Server error\n'.repeat(50)
+    generateLargeResponse(res, chunkText)
+  })
+
+  app.get('/large-response', (_req, res) => {
+    const chunkText = 'foofoobarbar\n'.repeat(50)
+    generateLargeResponse(res, chunkText)
+  })
+
+  app.get('/sw.js', (_req, res) => {
+    res.contentType('application/javascript').send(
+      workerSetup(
+        {
+          ...setupOptions!,
+          worker: { ...worker, importScripts: Boolean(_req.query.importScripts) },
+        },
+        servers
+      )
+    )
+  })
+
+  function generateLargeResponse(res: ServerResponse, chunkText: string) {
+    let bytesWritten = 0
+    let timeoutId: NodeJS.Timeout
+
+    res.on('close', () => {
+      largeResponseBytesWritten = bytesWritten
+      clearTimeout(timeoutId)
+    })
+
+    function writeMore() {
+      res.write(chunkText, (error) => {
+        if (error) {
+          console.log('Write error', error)
+        } else {
+          bytesWritten += chunkText.length
+          if (bytesWritten < LARGE_RESPONSE_MIN_BYTE_SIZE) {
+            timeoutId = setTimeout(writeMore, 10)
+          } else {
+            res.end()
+          }
+        }
+      })
+    }
+
+    writeMore()
+  }
+
+  app.get('/unknown', (_req, res) => {
+    res.status(404).send('Not found')
+  })
+
+  app.get('/empty.css', (_req, res) => {
+    // 50ms delay: WebKit clamps PerformanceResourceTiming timestamps to 1ms. Without a delay,
+    // a zero-byte response on fast (Linux CI) loopback occasionally completes within a single
+    // tick, collapsing every timestamp to the same value and making the SDK report duration: 0
+    // — which made `rum resources › retrieve early requests timings` the top flaky E2E this week.
+    setTimeout(() => res.header('content-type', 'text/css').end(), 50)
+  })
+
+  app.get('/flush', (_req, res) => {
+    // The RUM session replay recorder uses a Web Worker to format request data, so it cannot send
+    // its last segment during the "beforeunload" event — only a few milliseconds after. If the next
+    // page loads too quickly, the segment may be lost. /flush responds after 200ms to give the
+    // recorder time to send, and returns HTML with an empty favicon to avoid a spurious favicon request.
+    setTimeout(() => res.send('<!doctype html><html><head><link rel="icon" href="data:,"/></head></html>'), 200)
+  })
+
+  app.all('/ok', (req, res) => {
+    // Express will automatically append charset to the Content-Type header
+    res.header('Content-Type', 'text/plain')
+    if (req.query['timing-allow-origin'] === 'true') {
+      res.set('Timing-Allow-Origin', '*')
+    }
+
+    const responseHeaders = req.query['response-headers']
+    if (responseHeaders) {
+      for (const [header, value] of Object.entries(responseHeaders)) {
+        if (typeof value === 'string') {
+          res.header(header, value)
+        }
+      }
+    }
+
+    const timeoutDuration = req.query.duration ? Number(req.query.duration) : 0
+
+    setTimeout(() => res.send('ok'), timeoutDuration)
+  })
+
+  app.post('/graphql', (req, res) => {
+    res.header('Content-Type', 'application/json')
+
+    const scenario = req.query.scenario as string | undefined
+
+    if (scenario === 'validation-error') {
+      res.json({
+        data: null,
+        errors: [
+          {
+            message: 'Field "unknownField" does not exist',
+            extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+            locations: [{ line: 2, column: 5 }],
+            path: ['user', 'unknownField'],
+          },
+        ],
+      })
+    } else if (scenario === 'multiple-errors') {
+      res.json({
+        data: { user: null },
+        errors: [
+          { message: 'User not found' },
+          { message: 'Insufficient permissions', extensions: { code: 'UNAUTHORIZED' } },
+        ],
+      })
+    } else {
+      res.json({ data: { result: 'success' } })
+    }
+  })
+
+  app.get('/graphql', (_req, res) => {
+    res.header('Content-Type', 'application/json')
+    res.json({ data: { result: 'success' } })
+  })
+
+  app.get('/redirect', (req, res) => {
+    const redirectUri = url.parse(req.originalUrl)
+    res.redirect(`ok${redirectUri.search!}`)
+  })
+
+  app.get('/headers', (req, res) => {
+    res.send(JSON.stringify(req.headers))
+  })
+
+  app.get('/', (req, res) => {
+    res.header(
+      'Content-Security-Policy',
+      [
+        `connect-src ${servers.datadogHttpApi.origin} ${servers.base.origin} ${servers.crossOrigin.origin} https://quota.browser-intake-datadoghq.com`,
+        `script-src 'self' 'unsafe-inline' ${servers.crossOrigin.origin}`,
+        "worker-src blob: 'self'",
+      ].join(';')
+    )
+    if (req.query['js-profiling'] === 'true') {
+      res.header('Document-Policy', 'js-profiling')
+    }
+    res.send(setup)
+    res.end()
+  })
+
+  app.get('/no-blob-worker-csp', (_req, res) => {
+    res.header(
+      'Content-Security-Policy',
+      [
+        `connect-src ${servers.datadogHttpApi.origin} ${servers.base.origin} ${servers.crossOrigin.origin} https://quota.browser-intake-datadoghq.com`,
+        `script-src 'self' 'unsafe-inline' ${servers.crossOrigin.origin}`,
+      ].join(';')
+    )
+    res.send(setup)
+    res.end()
+  })
+
+  app.get(/datadog-(?<packageName>[a-z-]*)\.js/, (req, res) => {
+    const { originalUrl, params } = req
+
+    if (process.env.CI) {
+      res.sendFile(getSdkBundlePath(`browser-${params.packageName}`, originalUrl))
+    } else {
+      forwardToDevServer(req.originalUrl, res)
+    }
+  })
+
+  app.get('/worker.js', (req, res) => {
+    if (process.env.CI) {
+      res.sendFile(getSdkBundlePath('browser-worker', req.originalUrl))
+    } else {
+      forwardToDevServer(req.originalUrl, res)
+    }
+  })
+
+  app.get(/(?<appName>app|react-[\w-]+|angular-[\w-]+|tanstack-[\w-]+).js$/, (req, res) => {
+    const { originalUrl, params } = req
+    res.sendFile(getTestAppBundlePath(params.appName, originalUrl))
+  })
+
+  app.get(/^\/microfrontend\/.*/, (req, res) => {
+    const { originalUrl } = req
+    // Remove the /microfrontend prefix from the URL since getTestAppBundlePath adds the app path
+    const filePath = originalUrl.replace(/^\/microfrontend/, '')
+    res.sendFile(getTestAppBundlePath('microfrontend', filePath))
+  })
+
+  app.get('/config', (_req, res) => {
+    res.send(JSON.stringify(remoteConfiguration))
+  })
+
+  return Object.assign(app, {
+    getLargeResponseWroteSize() {
+      return largeResponseBytesWritten
+    },
+  })
+}
+
+// We fetch and pipe the file content instead of redirecting to avoid creating different behavior between CI and local dev
+// This way both environments serve the files from the same origin with the same CSP rules
+function forwardToDevServer(originalUrl: string, res: ServerResponse) {
+  const url = `${DEV_SERVER_BASE_URL}${originalUrl}`
+
+  fetch(url)
+    .then(({ body, headers }) => {
+      void body?.pipeTo(
+        new WritableStream({
+          start() {
+            headers.forEach((value, key) => res.setHeader(key, value))
+          },
+          write(chunk) {
+            res.write(chunk)
+          },
+          close() {
+            res.end()
+          },
+        })
+      )
+    })
+    .catch(() => console.error(`Error fetching ${url}, did you run 'yarn dev'?`))
+}

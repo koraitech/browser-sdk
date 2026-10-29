@@ -1,0 +1,227 @@
+import type {
+  RumEvent,
+  RumActionEvent,
+  RumErrorEvent,
+  RumResourceEvent,
+  RumViewEvent,
+  RumViewUpdateEvent,
+  RumVitalEvent,
+  RumLongTaskEvent,
+} from '@koraitech/browser-rum'
+import type {
+  TelemetryEvent,
+  TelemetryErrorEvent,
+  TelemetryConfigurationEvent,
+  TelemetryUsageEvent,
+} from '@koraitech/browser-core'
+import type {
+  DebuggerIntakeRequest,
+  IntakeRequest,
+  LogsIntakeRequest,
+  ProfileIntakeRequest,
+  ReplayIntakeRequest,
+  RumIntakeRequest,
+} from './intakeProxyMiddleware'
+
+/**
+ * Store data sent to the intake and expose helpers to access it.
+ */
+export class IntakeRegistry {
+  readonly requests: IntakeRequest[] = []
+
+  push(request: IntakeRequest) {
+    this.requests.push(request)
+  }
+
+  get isEmpty() {
+    return this.requests.length === 0
+  }
+
+  empty() {
+    this.requests.length = 0
+  }
+
+  get hasOnlyBridgeRequests() {
+    return this.requests.every((request) => request.isBridge)
+  }
+
+  //
+  // Logs
+  //
+
+  get logsRequests() {
+    return this.requests.filter(isLogsIntakeRequest)
+  }
+
+  get logsEvents() {
+    return this.logsRequests.flatMap((request) => request.events)
+  }
+
+  //
+  // RUM
+  //
+
+  get rumRequests() {
+    return this.requests.filter(isRumIntakeRequest)
+  }
+
+  get rumEvents() {
+    return this.rumRequests.flatMap((request) => request.events.filter(isRumEvent))
+  }
+
+  get rumActionEvents() {
+    return this.rumEvents.filter(isRumActionEvent)
+  }
+
+  get rumErrorEvents() {
+    return this.rumEvents.filter(isRumErrorEvent)
+  }
+
+  get rumResourceEvents() {
+    return this.rumEvents.filter(isRumResourceEvent)
+  }
+
+  get rumLongTaskEvents() {
+    return this.rumEvents.filter(isRumLongTaskEvent)
+  }
+
+  get rumViewEvents() {
+    return this.rumEvents.filter(isRumViewEvent)
+  }
+
+  get rumViewUpdateEvents() {
+    return this.rumEvents.filter(isRumViewUpdateEvent)
+  }
+
+  get rumVitalEvents() {
+    return this.rumEvents.filter(isRumVitalEvent)
+  }
+
+  //
+  // Telemetry
+  //
+
+  get telemetryEvents() {
+    return this.rumRequests.flatMap((request) => request.events.filter(isTelemetryEvent))
+  }
+
+  get telemetryErrorEvents() {
+    return this.telemetryEvents.filter(isTelemetryErrorEvent)
+  }
+
+  get telemetryConfigurationEvents() {
+    return this.telemetryEvents.filter(isTelemetryConfigurationEvent)
+  }
+
+  get telemetryUsageEvents() {
+    return this.telemetryEvents.filter(isTelemetryUsageEvent)
+  }
+
+  //
+  // Replay
+  //
+
+  get replayRequests() {
+    return this.requests.filter(isReplayIntakeRequest)
+  }
+
+  get replaySegments() {
+    return this.replayRequests.map((request) => request.segment)
+  }
+
+  get replayRecords() {
+    return this.replayRequests.flatMap((request) => request.segment.records)
+  }
+
+  //
+  // Profiling
+  //
+
+  get profileRequests() {
+    return this.requests.filter(isProfileIntakeRequest)
+  }
+
+  get profileEvents() {
+    return this.profileRequests.map((request) => request.event)
+  }
+
+  //
+  // Debugger
+  //
+
+  get debuggerRequests() {
+    return this.requests.filter(isDebuggerIntakeRequest)
+  }
+
+  get debuggerEvents() {
+    return this.debuggerRequests.flatMap((request) => request.events)
+  }
+}
+
+function isLogsIntakeRequest(request: IntakeRequest): request is LogsIntakeRequest {
+  return request.intakeType === 'logs'
+}
+
+function isRumIntakeRequest(request: IntakeRequest): request is RumIntakeRequest {
+  return request.intakeType === 'rum'
+}
+
+function isReplayIntakeRequest(request: IntakeRequest): request is ReplayIntakeRequest {
+  return request.intakeType === 'replay'
+}
+
+function isProfileIntakeRequest(request: IntakeRequest): request is ProfileIntakeRequest {
+  return request.intakeType === 'profile'
+}
+
+function isDebuggerIntakeRequest(request: IntakeRequest): request is DebuggerIntakeRequest {
+  return request.intakeType === 'debugger'
+}
+
+function isRumEvent(event: RumEvent | TelemetryEvent): event is RumEvent {
+  return !isTelemetryEvent(event)
+}
+
+function isRumResourceEvent(event: RumEvent): event is RumResourceEvent {
+  return event.type === 'resource'
+}
+
+function isRumActionEvent(event: RumEvent): event is RumActionEvent {
+  return event.type === 'action'
+}
+
+function isRumLongTaskEvent(event: RumEvent): event is RumLongTaskEvent {
+  return event.type === 'long_task'
+}
+
+function isRumViewEvent(event: RumEvent): event is RumViewEvent {
+  return event.type === 'view'
+}
+
+function isRumViewUpdateEvent(event: RumEvent): event is RumViewUpdateEvent {
+  return (event.type as string) === 'view_update'
+}
+
+function isRumErrorEvent(event: RumEvent): event is RumErrorEvent {
+  return event.type === 'error'
+}
+
+function isRumVitalEvent(event: RumEvent): event is RumVitalEvent {
+  return event.type === 'vital'
+}
+
+function isTelemetryEvent(event: RumEvent | TelemetryEvent): event is TelemetryEvent {
+  return event.type === 'telemetry'
+}
+
+function isTelemetryErrorEvent(event: TelemetryEvent): event is TelemetryErrorEvent {
+  return isTelemetryEvent(event) && event.telemetry.status === 'error'
+}
+
+function isTelemetryConfigurationEvent(event: TelemetryEvent): event is TelemetryConfigurationEvent {
+  return isTelemetryEvent(event) && event.telemetry.type === 'configuration'
+}
+
+function isTelemetryUsageEvent(event: TelemetryEvent): event is TelemetryUsageEvent {
+  return isTelemetryEvent(event) && event.telemetry.type === 'usage'
+}

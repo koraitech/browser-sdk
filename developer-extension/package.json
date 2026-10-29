@@ -1,0 +1,33 @@
+{
+  "name": "@koraitech/browser-sdk-developer-extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "wxt build",
+    "dev": "wxt"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.1.43",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@wxt-dev/module-react": "1.2.2",
+    "typescript": "6.0.3",
+    "vite": "8.0.16"
+  },
+  "dependencies": {
+    "@mantine/core": "9.3.1",
+    "@mantine/hooks": "9.3.1",
+    "@koraitech/browser-core": "workspace:*",
+    "@koraitech/browser-logs": "workspace:*",
+    "@koraitech/browser-rum": "workspace:*",
+    "@koraitech/browser-rum-core": "workspace:*",
+    "@tabler/icons-react": "3.44.0",
+    "clsx": "2.1.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "wxt": "0.20.26"
+  },
+  "volta": {
+    "extends": "../package.json"
+  }
+}

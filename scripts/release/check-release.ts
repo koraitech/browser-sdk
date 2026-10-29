@@ -1,0 +1,25 @@
+import { browserSdkVersion as releaseVersion } from '../lib/browserSdkVersion.ts'
+import { printLog, runMain } from '../lib/executionUtils.ts'
+import { command } from '../lib/command.ts'
+import { checkPackageJsonFiles } from '../lib/checkBrowserSdkPackageJsonFiles.ts'
+
+runMain(() => {
+  checkGitTag()
+  checkPackageJsonFiles()
+
+  printLog('Release check done.')
+})
+
+function checkGitTag(): void {
+  printLog('Checking release version tag is on HEAD')
+  const headRef = command`git rev-parse HEAD`.run()
+  let tagRef: string
+  try {
+    tagRef = command`git rev-list -n 1 v${releaseVersion} --`.run()
+  } catch (error) {
+    throw new Error('Failed to find git tag reference', { cause: error })
+  }
+  if (tagRef !== headRef) {
+    throw new Error('Git tag not on HEAD')
+  }
+}

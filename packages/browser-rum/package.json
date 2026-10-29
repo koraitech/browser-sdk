@@ -1,0 +1,52 @@
+{
+  "name": "@koraitech/browser-rum",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "main": "cjs/entries/main.js",
+  "module": "esm/entries/main.mjs",
+  "types": "cjs/entries/main.d.ts",
+  "files": [
+    "bundle/**/*.js",
+    "cjs",
+    "esm",
+    "src",
+    "internal",
+    "internal-synthetics",
+    "!src/**/*.spec.ts",
+    "!src/**/*.specHelper.ts"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build/build-package.ts --modules --bundle korai-rum.js",
+    "build:bundle": "node ../../scripts/build/build-package.ts --bundle korai-rum.js",
+    "prepack": "yarn build"
+  },
+  "dependencies": {
+    "@koraitech/browser-core": "0.1.0",
+    "@koraitech/browser-rum-core": "0.1.0",
+    "@koraitech/js-core": "0.1.0"
+  },
+  "peerDependencies": {
+    "@koraitech/browser-logs": "0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@koraitech/browser-logs": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koraitech/browser-sdk.git",
+    "directory": "packages/browser-rum"
+  },
+  "devDependencies": {
+    "@koraitech/browser-worker": "0.1.0",
+    "@types/pako": "2.0.4",
+    "pako": "2.1.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

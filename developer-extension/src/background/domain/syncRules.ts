@@ -1,0 +1,108 @@
+import type { NetRequestRulesOptions } from '../../common/extension.types'
+import { DEV_RUM_SLIM_URL, DEV_RUM_URL, DEV_SERVER_ORIGIN } from '../../common/packagesUrlConstants'
+import { INTAKE_DOMAINS } from '../../common/intakeDomainConstants'
+import { createLogger } from '../../common/logger'
+import { onDevtoolsDisconnection, onDevtoolsMessage } from '../devtoolsPanelConnection'
+
+const logger = createLogger('syncRules')
+
+onDevtoolsDisconnection.subscribe((tabId) => {
+  clearRules(tabId).catch((error) => logger.error('Error while clearing rules:', error))
+})
+
+onDevtoolsMessage.subscribe((message) => {
+  if (message.type === 'update-net-request-rules') {
+    updateRules(message.options).catch((error) => logger.error('Error while updating rules:', error))
+  }
+})
+
+async function clearRules(tabId: number) {
+  logger.log(`Clearing rules for tab ${tabId}`)
+  const { tabRuleIds } = await getExistingRulesInfos(tabId)
+  await chrome.declarativeNetRequest.updateSessionRules({
+    removeRuleIds: tabRuleIds,
+  })
+  await chrome.browsingData.removeCache({})
+}
+
+async function updateRules(options: NetRequestRulesOptions) {
+  logger.log(`Updating rules for tab ${options.tabId}`)
+  const { tabRuleIds, nextRuleId } = await getExistingRulesInfos(options.tabId)
+  await chrome.declarativeNetRequest.updateSessionRules({
+    removeRuleIds: tabRuleIds,
+    addRules: buildRules(options, nextRuleId),
+  })
+  await chrome.browsingData.removeCache({})
+}
+
+async function getExistingRulesInfos(tabId: number) {
+  const rules = await chrome.declarativeNetRequest.getSessionRules()
+
+  let nextRuleId = 1
+  const tabRuleIds: number[] = []
+  for (const rule of rules) {
+    if (rule.condition.tabIds?.includes(tabId)) {
+      tabRuleIds.push(rule.id)
+    } else {
+      nextRuleId = rule.id + 1
+    }
+  }
+
+  return { tabRuleIds, nextRuleId }
+}
+
+function buildRules(
+  { tabId, useDevBundles, useRumSlim, blockIntakeRequests }: NetRequestRulesOptions,
+  nextRuleId: number
+) {
+  const rules: chrome.declarativeNetRequest.Rule[] = []
+  let id = nextRuleId
+
+  if (useDevBundles === 'cdn') {
+    const devRumUrl = useRumSlim ? DEV_RUM_SLIM_URL : DEV_RUM_URL
+    logger.log('add redirect to dev bundles rules')
+    rules.push(
+      createRedirectRule(/^https:\/\/.*\/datadog-(rum|rum-slim|logs)(-[\w-]+)?\.js$/, {
+        regexSubstitution: `${DEV_SERVER_ORIGIN}/datadog-\\1.js`,
+      }),
+      createRedirectRule(/^https:\/\/.*\/chunks\/(\w+)(-\w+)?-korai-rum.js$/, {
+        regexSubstitution: `${DEV_SERVER_ORIGIN}/chunks/\\1-korai-rum.js`,
+      }),
+      createRedirectRule('https://localhost:8443/static/korai-rum-hotdog.js', { url: devRumUrl })
+    )
+  } else if (useRumSlim) {
+    logger.log('add redirect to rum slim rule')
+    rules.push(createRedirectRule(/^(https:\/\/.*\/korai-rum)(-slim)?/, { regexSubstitution: '\\1-slim' }))
+  }
+
+  if (blockIntakeRequests) {
+    logger.log('add block intake rules')
+    for (const intakeDomain of INTAKE_DOMAINS) {
+      rules.push({
+        id: id++,
+        condition: { tabIds: [tabId], urlFilter: `||${intakeDomain}` },
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.BLOCK,
+        },
+      })
+    }
+  }
+
+  function createRedirectRule(
+    filter: RegExp | string,
+    redirect: chrome.declarativeNetRequest.Redirect
+  ): chrome.declarativeNetRequest.Rule {
+    const tabIds = [tabId]
+    return {
+      id: id++,
+      action: {
+        type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
+        redirect,
+      },
+      condition:
+        typeof filter === 'string' ? { tabIds, urlFilter: `|${filter}|` } : { tabIds, regexFilter: filter.source },
+    }
+  }
+
+  return rules
+}

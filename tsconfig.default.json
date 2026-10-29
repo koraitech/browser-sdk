@@ -1,0 +1,41 @@
+// This tsconfig used as a default for typechecking files that are not included in any other
+// tsconfig.
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["jasmine"],
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "exclude": [
+    // Generated files
+    "packages/*/cjs",
+    "packages/*/esm",
+    "packages/*/bundle",
+
+    // Files included in ./tsconfig.scripts.json
+    "scripts",
+    "**/webpack.*.*",
+    "webpack.base.ts",
+    "test/envUtils.ts",
+    "eslint.config.ts",
+    "eslint-local-rules",
+    "test/unit",
+
+    // Files included in ./test/e2e/tsconfig.json
+    "test/e2e",
+    "test/lib",
+
+    // Files included in ./test/performance/tsconfig.json
+    "test/performance",
+
+    // Files included in ./developer-extension/tsconfig.json
+    "developer-extension",
+
+    // Files included in ./packages/browser-rum-nextjs/tsconfig.json
+    "packages/browser-rum-nextjs",
+
+    // Skip typechecking for these folders for now
+    "test/apps"
+  ]
+}

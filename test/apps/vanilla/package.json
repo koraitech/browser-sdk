@@ -1,0 +1,44 @@
+{
+  "name": "app",
+  "private": true,
+  "scripts": {
+    "build": "webpack --config ./webpack.web.js",
+    "compat:tsc": "tsc -p tsconfig.json",
+    "compat:ssr": "webpack --config ./webpack.ssr.js && node dist/app.js"
+  },
+  "peerDependencies": {
+    "@koraitech/browser-logs": "*",
+    "@koraitech/browser-rum": "*",
+    "@koraitech/browser-debugger": "*"
+  },
+  "peerDependenciesMeta": {
+    "@koraitech/browser-logs": {
+      "optional": true
+    },
+    "@koraitech/browser-rum": {
+      "optional": true
+    },
+    "@koraitech/browser-debugger": {
+      "optional": true
+    }
+  },
+  "resolutions": {
+    "@koraitech/browser-core": "file:../../../packages/browser-core/package.tgz",
+    "@koraitech/js-core": "file:../../../packages/js-core/package.tgz",
+    "@koraitech/browser-rum": "file:../../../packages/browser-rum/package.tgz",
+    "@koraitech/browser-logs": "file:../../../packages/browser-logs/package.tgz",
+    "@koraitech/browser-rum-core": "file:../../../packages/browser-rum-core/package.tgz",
+    "@koraitech/browser-rum-react": "file:../../../packages/browser-rum-react/package.tgz",
+    "@koraitech/browser-rum-slim": "file:../../../packages/browser-rum-slim/package.tgz",
+    "@koraitech/browser-worker": "file:../../../packages/browser-worker/package.tgz",
+    "@koraitech/browser-debugger": "file:../../../packages/browser-debugger/package.tgz"
+  },
+  "devDependencies": {
+    "ts-loader": "9.6.0",
+    "typescript": "6.0.2",
+    "webpack": "5.107.2"
+  },
+  "volta": {
+    "extends": "../../../package.json"
+  }
+}
