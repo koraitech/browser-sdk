@@ -2,13 +2,13 @@ import type { RumConfiguration } from '@koraitech/browser-rum-core'
 import { getSessionReplayLink } from './getSessionReplayLink'
 
 const DEFAULT_CONFIGURATION = {
-  site: 'datadoghq.com',
+  site: 'observability.example.com',
 } as RumConfiguration
 
 describe('getReplayLink (slim package)', () => {
   it('should return the replay link with a "slim-package" error type', () => {
     const link = getSessionReplayLink(DEFAULT_CONFIGURATION)
 
-    expect(link).toBe('https://api.openobserve.ai/rum/replay/sessions/no-session-id?error-type=slim-package')
+    expect(link).toBe('https://observability.example.com/rum/replay/sessions/no-session-id?error-type=slim-package')
   })
 })

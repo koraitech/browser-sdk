@@ -41,8 +41,8 @@ describe('getIntakeUrlForEvent', () => {
       )!
     )
 
-    expect(url.host).toBe('browser-intake-datadoghq.com')
-    expect(url.pathname).toBe('/api/v2/rum')
+    expect(url.host).toBe('datadoghq.com')
+    expect(url.pathname).toBe('/rum/v1/default/rum')
     expect(url.searchParams.get('o2source')).toBe('browser')
     expect(url.searchParams.get('o2-api-key')).toBe('client-token')
     expect(url.searchParams.get('o2-evp-origin-version')).toBe('1.2.3')
@@ -86,7 +86,7 @@ describe('getIntakeUrlForEvent', () => {
       )!
     )
 
-    expect(url.pathname).toBe('/api/v2/rum')
+    expect(url.pathname).toBe('/rum/v1/default/rum')
   })
 
   it('should use the Logs intake for Log events', () => {
@@ -105,7 +105,7 @@ describe('getIntakeUrlForEvent', () => {
       )!
     )
 
-    expect(url.pathname).toBe('/api/v2/logs')
+    expect(url.pathname).toBe('/rum/v1/default/logs')
   })
 })
 

@@ -1,7 +1,7 @@
 import type { RumEvent } from '../../../../browser-rum-core/src'
 import { EXHAUSTIVE_INIT_CONFIGURATION, SERIALIZED_EXHAUSTIVE_INIT_CONFIGURATION } from '../../../test'
 import type { ExtractTelemetryConfiguration, MapInitConfigurationKey } from '../../../test'
-import { DOCS_ORIGIN, MORE_DETAILS, display } from '../../tools/display'
+import { display } from '../../tools/display'
 import { ExperimentalFeature, isExperimentalFeatureEnabled } from '../../tools/experimentalFeatures'
 import { TrackingConsent } from '../trackingConsent'
 import type { InitConfiguration } from './configuration'
@@ -166,11 +166,10 @@ describe('validateAndBuildConfiguration', () => {
   })
 
   describe('site parameter validation', () => {
-    it('should validate the site parameter', () => {
-      validateAndBuildConfiguration({ clientToken, site: 'foo.com' })
-      expect(displaySpy).toHaveBeenCalledOnceWith(
-        `Site should be a valid Datadog site. ${MORE_DETAILS} ${DOCS_ORIGIN}/getting_started/site/.`
-      )
+    it('should accept any host as site', () => {
+      const configuration = validateAndBuildConfiguration({ clientToken, site: 'observability.example.com' })
+      expect(configuration!.site).toBe('observability.example.com')
+      expect(displaySpy).not.toHaveBeenCalled()
     })
   })
 

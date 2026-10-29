@@ -1,12 +1,5 @@
 import { ONE_MINUTE } from '@koraitech/js-core/time'
-import {
-  DefaultPrivacyLevel,
-  INTAKE_SITE_US1,
-  display,
-  setCookie,
-  deleteCookie,
-  createContextManager,
-} from '@koraitech/browser-core'
+import { DefaultPrivacyLevel, display, setCookie, deleteCookie, createContextManager } from '@koraitech/browser-core'
 import { interceptRequests, registerCleanupTask } from '@koraitech/browser-core/test'
 import { appendElement } from '../../../test'
 import type { RumInitConfiguration } from './configuration'
@@ -742,9 +735,9 @@ describe('remoteConfiguration', () => {
   describe('buildEndpoint', () => {
     it('should return the remote configuration endpoint', () => {
       const remoteConfigurationId = '0e008b1b-8600-4709-9d1d-f4edcfdf5587'
-      expect(buildEndpoint({ site: INTAKE_SITE_US1, remoteConfigurationId } as RumInitConfiguration)).toEqual(
-        `https://sdk-configuration.browser-intake-datadoghq.com/v1/${remoteConfigurationId}.json`
-      )
+      expect(
+        buildEndpoint({ site: 'observability.example.com', remoteConfigurationId } as RumInitConfiguration)
+      ).toEqual(`https://observability.example.com/v1/${remoteConfigurationId}.json`)
     })
 
     it('should return the remote configuration proxy', () => {

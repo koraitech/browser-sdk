@@ -89,7 +89,7 @@ describe('logs', () => {
 
       expect(requests.length).toEqual(1)
       expect(requests[0].url).toMatch(
-        /^https:\/\/browser-intake-datadoghq\.com\/api\/v2\/logs\?o2source=browser&o2-api-key=xxx&o2-evp-origin-version=test&o2-evp-origin=browser&o2-request-id=/
+        /^https:\/\/datadoghq\.com\/rum\/v1\/default\/logs\?o2source=browser&o2-api-key=xxx&o2-evp-origin-version=test&o2-evp-origin=browser&o2-request-id=/
       )
       expect(getLoggedMessage(requests, 0)).toEqual({
         date: jasmine.any(Number),

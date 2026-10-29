@@ -6,14 +6,9 @@ import { getSessionReplayUrl, getDatadogSiteUrl } from './getSessionReplayUrl'
 
 describe('getDatadogSiteUrl', () => {
   const parameters: Array<[string, string | undefined, string]> = [
-    ['datadoghq.com', undefined, 'api.openobserve.ai'],
-    ['datadoghq.com', 'toto', 'toto.datadoghq.com'],
-    ['datad0g.com', undefined, 'dd.datad0g.com'],
-    ['datad0g.com', 'toto', 'toto.datad0g.com'],
-    ['us3.datadoghq.com', undefined, 'us3.datadoghq.com'],
-    ['us3.datadoghq.com', 'toto', 'toto.us3.datadoghq.com'],
-    ['us5.datadoghq.com', undefined, 'us5.datadoghq.com'],
-    ['us5.datadoghq.com', 'toto', 'toto.us5.datadoghq.com'],
+    ['observability.example.com', undefined, 'observability.example.com'],
+    ['observability.example.com', 'toto', 'toto.observability.example.com'],
+    ['localhost:5080', undefined, 'localhost:5080'],
   ]
 
   parameters.forEach(([site, subdomain, host]) => {
@@ -35,7 +30,7 @@ describe('getSessionReplayUrl', () => {
         session: { id: 'session-id-1' } as SessionContext,
         viewContext: undefined,
         errorType: undefined,
-        expected: 'https://api.openobserve.ai/rum/replay/sessions/session-id-1?',
+        expected: 'https://observability.example.com/rum/replay/sessions/session-id-1?',
       },
     ],
     [
@@ -44,7 +39,7 @@ describe('getSessionReplayUrl', () => {
         session: undefined,
         viewContext: undefined,
         errorType: 'toto',
-        expected: 'https://api.openobserve.ai/rum/replay/sessions/no-session-id?error-type=toto',
+        expected: 'https://observability.example.com/rum/replay/sessions/no-session-id?error-type=toto',
       },
     ],
     [
@@ -53,7 +48,7 @@ describe('getSessionReplayUrl', () => {
         session: { id: 'session-id-2' } as SessionContext,
         viewContext: { id: 'view-id-1', startClocks: { relative: 0, timeStamp: 1234 } as ClocksState },
         errorType: undefined,
-        expected: 'https://api.openobserve.ai/rum/replay/sessions/session-id-2?seed=view-id-1&from=1234',
+        expected: 'https://observability.example.com/rum/replay/sessions/session-id-2?seed=view-id-1&from=1234',
       },
     ],
     [
@@ -63,14 +58,14 @@ describe('getSessionReplayUrl', () => {
         viewContext: { id: 'view-id-2', startClocks: { relative: 0, timeStamp: 1234 } as ClocksState },
         errorType: 'titi',
         expected:
-          'https://api.openobserve.ai/rum/replay/sessions/session-id-3?error-type=titi&seed=view-id-2&from=1234',
+          'https://observability.example.com/rum/replay/sessions/session-id-3?error-type=titi&seed=view-id-2&from=1234',
       },
     ],
   ]
 
   parameters.forEach(([{ testCase, session, viewContext, errorType, expected }]) => {
     it(`should build url when ${testCase}`, () => {
-      const link = getSessionReplayUrl({ site: 'datadoghq.com' } as RumConfiguration, {
+      const link = getSessionReplayUrl({ site: 'observability.example.com' } as RumConfiguration, {
         viewContext,
         session,
         errorType,

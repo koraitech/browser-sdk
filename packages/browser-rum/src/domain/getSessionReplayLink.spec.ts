@@ -6,7 +6,7 @@ import { addRecord } from './replayStats'
 
 const SESSION_ID = '00000000-0000-0000-0000-000000000001'
 const DEFAULT_CONFIGURATION = mockRumConfiguration({
-  site: 'datadoghq.com',
+  site: 'observability.example.com',
   sessionSampleRate: 100,
   sessionReplaySampleRate: 100,
 })
@@ -18,7 +18,7 @@ describe('getReplayLink', () => {
 
     const link = getSessionReplayLink(DEFAULT_CONFIGURATION, sessionManager, viewHistory, true)
 
-    expect(link).toBe(`https://api.openobserve.ai/rum/replay/sessions/${SESSION_ID}?`)
+    expect(link).toBe(`https://observability.example.com/rum/replay/sessions/${SESSION_ID}?`)
   })
 
   it('should return the replay link', () => {
@@ -40,7 +40,9 @@ describe('getReplayLink', () => {
       true
     )
 
-    expect(link).toBe(`https://toto.datadoghq.com/rum/replay/sessions/${SESSION_ID}?seed=view-id-1&from=123456`)
+    expect(link).toBe(
+      `https://toto.observability.example.com/rum/replay/sessions/${SESSION_ID}?seed=view-id-1&from=123456`
+    )
   })
 
   it('should return link when replay is forced', () => {
@@ -59,7 +61,9 @@ describe('getReplayLink', () => {
     const noReplayConfig = { ...DEFAULT_CONFIGURATION, subdomain: 'toto', sessionReplaySampleRate: 0 }
     const link = getSessionReplayLink(noReplayConfig, sessionManager, viewHistory, true)
 
-    expect(link).toBe(`https://toto.datadoghq.com/rum/replay/sessions/${SESSION_ID}?seed=view-id-1&from=123456`)
+    expect(link).toBe(
+      `https://toto.observability.example.com/rum/replay/sessions/${SESSION_ID}?seed=view-id-1&from=123456`
+    )
   })
 
   it('return a param if replay is sampled out', () => {
@@ -76,7 +80,7 @@ describe('getReplayLink', () => {
     const noReplayConfig = { ...DEFAULT_CONFIGURATION, sessionReplaySampleRate: 0 }
     const link = getSessionReplayLink(noReplayConfig, sessionManager, viewHistory, true)
     expect(link).toBe(
-      `https://api.openobserve.ai/rum/replay/sessions/${SESSION_ID}?error-type=incorrect-session-plan&seed=view-id-1&from=123456`
+      `https://observability.example.com/rum/replay/sessions/${SESSION_ID}?error-type=incorrect-session-plan&seed=view-id-1&from=123456`
     )
   })
 
@@ -88,7 +92,7 @@ describe('getReplayLink', () => {
 
     const link = getSessionReplayLink(DEFAULT_CONFIGURATION, sessionManager, viewHistory, true)
 
-    expect(link).toBe('https://api.openobserve.ai/rum/replay/sessions/no-session-id?error-type=rum-not-tracked')
+    expect(link).toBe('https://observability.example.com/rum/replay/sessions/no-session-id?error-type=rum-not-tracked')
   })
 
   it('should add a param if the replay was not started', () => {
@@ -105,7 +109,7 @@ describe('getReplayLink', () => {
     const link = getSessionReplayLink(DEFAULT_CONFIGURATION, sessionManager, viewHistory, false)
 
     expect(link).toBe(
-      `https://api.openobserve.ai/rum/replay/sessions/${SESSION_ID}?error-type=replay-not-started&seed=view-id-1&from=123456`
+      `https://observability.example.com/rum/replay/sessions/${SESSION_ID}?error-type=replay-not-started&seed=view-id-1&from=123456`
     )
   })
 })

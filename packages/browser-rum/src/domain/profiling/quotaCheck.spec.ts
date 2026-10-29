@@ -89,27 +89,14 @@ describe('checkProfilingQuota', () => {
     expect(result).toEqual({ decision: 'quota_ok', reason: 'timeout' })
   })
 
-  it('builds the URL following the browser-intake-* host pattern', async () => {
+  it('uses the configured site verbatim as the quota host', async () => {
     interceptor.withFetch(backendResponse(true, 'quota_ok'))
-    await checkProfilingQuota(mockRumConfiguration({ site: 'datadoghq.com', clientToken: 'my-token' }), 'session-abc')
-    expect(interceptor.requests[0].url).toBe(
-      'https://quota.browser-intake-datadoghq.com/api/v2/profiling/quota?session_id=session-abc'
+    await checkProfilingQuota(
+      mockRumConfiguration({ site: 'observability.example.com', clientToken: 'my-token' }),
+      'session-abc'
     )
-  })
-
-  it('derives the host correctly for non-US1 sites', async () => {
-    interceptor.withFetch(backendResponse(true, 'quota_ok'))
-    await checkProfilingQuota(mockRumConfiguration({ site: 'datadoghq.eu' }), 'session-abc')
     expect(interceptor.requests[0].url).toBe(
-      'https://quota.browser-intake-datadoghq.eu/api/v2/profiling/quota?session_id=session-abc'
-    )
-  })
-
-  it('derives the host correctly for staging (datad0g.com)', async () => {
-    interceptor.withFetch(backendResponse(true, 'quota_ok'))
-    await checkProfilingQuota(mockRumConfiguration({ site: 'datad0g.com' }), 'session-abc')
-    expect(interceptor.requests[0].url).toBe(
-      'https://quota.browser-intake-datad0g.com/api/v2/profiling/quota?session_id=session-abc'
+      'https://observability.example.com/api/v2/profiling/quota?session_id=session-abc'
     )
   })
 

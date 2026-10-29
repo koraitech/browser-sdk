@@ -63,9 +63,29 @@ function getAjv() {
     getAjvCache = new Ajv({
       allErrors: true,
     })
-    getAjvCache.addSchema(allJsonSchemas)
+    getAjvCache.addSchema(allJsonSchemas.map(withHexSpanIds))
   }
   return getAjvCache
+}
+
+const SPAN_ID_PATTERN = '^([0-9]+|[0-9a-f]{16})$'
+
+/**
+ * The SDK serializes span ids as 16-char hex (what the OpenObserve backend expects), while the
+ * pinned rum-events-format schema still only describes the decimal form.
+ */
+function withHexSpanIds(schema: object): object {
+  const traceSchema = schema as { $id?: string; properties?: Record<string, { pattern?: string }> }
+  if (traceSchema.$id !== 'rum/_trace-schema.json' || !traceSchema.properties) {
+    return schema
+  }
+  const properties = { ...traceSchema.properties }
+  for (const key of ['span_id', 'parent_span_id']) {
+    if (properties[key]) {
+      properties[key] = { ...properties[key], pattern: SPAN_ID_PATTERN }
+    }
+  }
+  return { ...traceSchema, properties }
 }
 
 function validateRumFormat(rumEvent: Context) {

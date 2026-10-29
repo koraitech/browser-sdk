@@ -1,4 +1,5 @@
 import type { Payload } from '../../transport'
+import { INTAKE_SITE_US1 } from '../intakeSites'
 import type { InitConfiguration } from './configuration'
 import { validateAndBuildConfiguration } from './configuration'
 import { buildEndpointUrl, createEndpointBuilder, createReplicaEndpointBuilder } from './endpointBuilder'
@@ -56,7 +57,7 @@ describe('endpointBuilder', () => {
         )
       ).toMatch(
         `https://proxy.io/path\\?o2forward=${encodeURIComponent(
-          `/api/v2/rum?o2source=(.*)&o2-api-key=${clientToken}` +
+          `/rum/v1/default/rum?o2source=(.*)&o2-api-key=${clientToken}` +
             '&o2-evp-origin-version=(.*)&o2-evp-origin=browser&o2-request-id=(.*)&batch_time=(.*)'
         )}`
       )
@@ -76,7 +77,7 @@ describe('endpointBuilder', () => {
       expect(
         createEndpointBuilder({ ...initConfiguration, proxy: proxyFn }, 'rum').build('fetch', DEFAULT_PAYLOAD)
       ).toMatch(
-        `https://proxy.io/prefix/api/v2/rum/suffix\\?o2source=(.*)&o2-api-key=${clientToken}&o2-evp-origin-version=(.*)&o2-evp-origin=browser&o2-request-id=(.*)&batch_time=(.*)`
+        `https://proxy.io/prefix/rum/v1/default/rum/suffix\\?o2source=(.*)&o2-api-key=${clientToken}&o2-evp-origin-version=(.*)&o2-evp-origin=browser&o2-request-id=(.*)&batch_time=(.*)`
       )
     })
   })
@@ -145,10 +146,10 @@ describe('endpointBuilder', () => {
       )
     })
 
-    it('always targets the US1 site, even when the main site differs', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, site: 'datadoghq.eu', replica })!
+    it('always targets the default site, even when the main site differs', () => {
+      const configuration = validateAndBuildConfiguration({ clientToken, site: 'observability.example.com', replica })!
       expect(createReplicaEndpointBuilder(configuration, 'rum')!.build('fetch', DEFAULT_PAYLOAD)).toContain(
-        'https://browser-intake-datadoghq.com'
+        `https://${INTAKE_SITE_US1}/rum/v1/default/rum?`
       )
     })
 
@@ -235,15 +236,27 @@ describe('endpointBuilder', () => {
       ).toBe('https://proxy.test/api/v2/rum?')
     })
 
-    it('builds intake URL from the site when no proxy is configured', () => {
+    it('uses the site verbatim as the intake host when no proxy is configured', () => {
       expect(
         buildEndpointUrl({
           proxy: undefined,
-          site: 'datadoghq.com',
-          path: '/api/v2/rum',
+          site: 'observability.example.com',
+          path: '/rum/v1/default/rum',
           parameters: 'foo=bar',
         })
-      ).toBe('https://browser-intake-datadoghq.com/api/v2/rum?foo=bar')
+      ).toBe('https://observability.example.com/rum/v1/default/rum?foo=bar')
+    })
+
+    it('uses plain HTTP when insecureHTTP is set', () => {
+      expect(
+        buildEndpointUrl({
+          proxy: undefined,
+          site: 'localhost:5080',
+          path: '/rum/v1/default/rum',
+          parameters: 'foo=bar',
+          insecureHTTP: true,
+        })
+      ).toBe('http://localhost:5080/rum/v1/default/rum?foo=bar')
     })
 
     it('defaults to US1 site when site is undefined', () => {
@@ -254,30 +267,30 @@ describe('endpointBuilder', () => {
           path: '/api/v2/rum',
           parameters: 'foo=bar',
         })
-      ).toBe('https://browser-intake-datadoghq.com/api/v2/rum?foo=bar')
+      ).toBe(`https://${INTAKE_SITE_US1}/api/v2/rum?foo=bar`)
     })
 
     it('omits the query separator when parameters are empty', () => {
       expect(
         buildEndpointUrl({
           proxy: undefined,
-          site: 'datadoghq.com',
-          path: '/api/v2/rum',
+          site: 'observability.example.com',
+          path: '/rum/v1/default/rum',
           parameters: '',
         })
-      ).toBe('https://browser-intake-datadoghq.com/api/v2/rum')
+      ).toBe('https://observability.example.com/rum/v1/default/rum')
     })
 
-    it('adds subdomain to the intake host', () => {
+    it('does not prepend the subdomain to the intake host', () => {
       expect(
         buildEndpointUrl({
           proxy: undefined,
-          site: 'datadoghq.com',
+          site: 'observability.example.com',
           path: '/api/v2/profiling/quota',
           parameters: 'session_id=abc',
           subdomain: 'quota',
         })
-      ).toBe('https://quota.browser-intake-datadoghq.com/api/v2/profiling/quota?session_id=abc')
+      ).toBe('https://observability.example.com/api/v2/profiling/quota?session_id=abc')
     })
   })
 })
