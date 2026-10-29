@@ -1,3 +1,5 @@
+import { dateNow } from '@koraitech/js-core/time'
+
 interface BaseIdentifier {
   toString(radix?: number): string
 }
@@ -62,7 +64,7 @@ function createIdentifier(bits: 63 | 64): BaseIdentifier {
  */
 function createUuidV7Identifier(): BaseIdentifier {
   const buffer = crypto.getRandomValues(new Uint32Array(3))
-  const timestamp = BigInt(Date.now())
+  const timestamp = BigInt(dateNow())
   /* eslint-disable no-bitwise */
   const randA = BigInt(buffer[0] & 0x0fff) // 12 bits
   const randB = (BigInt(buffer[1]) << 32n) | BigInt(buffer[2]) // 64 bits, truncated to 62 below

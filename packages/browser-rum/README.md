@@ -1,43 +1,47 @@
-# RUM Browser Monitoring
+# `@koraitech/browser-rum`
 
-OpenObserve Real User Monitoring (RUM) enables you to visualize and analyze the real-time performance and user journeys of your application's individual users.
-
-See the [OpenObserve RUM documentation][1] for more details.
+Real User Monitoring for web applications: page views, user actions, resources, long tasks,
+errors, Web Vitals and session replay. Data is sent directly to an OpenObserve-compatible
+RUM intake.
 
 ## Usage
 
-To start collecting events, add [`@openobserve/browser-rum`][2] to your `package.json` file, then initialize it with:
-
 ```javascript
-import { openobserveRum } from '@openobserve/browser-rum'
+import { koraiRum } from '@koraitech/browser-rum'
 
-openobserveRum.init({
-  applicationId: '<OPENOBSERVE_APPLICATION_ID>',
-  clientToken: '<OPENOBSERVE_CLIENT_TOKEN>',
-  site: '<OPENOBSERVE_SITE>',
-  organizationIdentifier: '<OPENOBSERVE_ORGANIZATION_IDENTIFIER>',
-  //  service: 'my-web-application',
-  //  env: 'production',
-  //  version: '1.0.0',
+koraiRum.init({
+  applicationId: '<APPLICATION_ID>',
+  clientToken: '<RUM_CLIENT_TOKEN>',
+  site: '<OBSERVABILITY_HOST>',
+  organizationIdentifier: '<ORGANIZATION>',
+  service: 'my-web-app',
+  env: 'production',
+  version: '1.0.0',
   sessionSampleRate: 100,
   sessionReplaySampleRate: 100,
   trackResources: true,
   trackLongTasks: true,
   trackUserInteractions: true,
+  defaultPrivacyLevel: 'mask-user-input',
 })
 ```
 
-**Note**: The `trackUserInteractions` parameter enables the automatic collection of user clicks in your application. **Sensitive and private data** contained in your pages may be included to identify the elements interacted with.
+**Note**: `trackUserInteractions` collects user clicks. Text of the clicked elements may be
+included; use the `data-o2-privacy` attributes or `defaultPrivacyLevel` to mask sensitive content.
 
 ## CDN
 
-The bundle is also served from the OpenObserve CDN:
-
 ```html
-<script src="https://browsersdk.openobserve.ai/<VERSION>/openobserve-rum.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@koraitech/browser-rum@<VERSION>/bundle/korai-rum.js"></script>
+<script>
+  window.KORAI_RUM.init({
+    /* same options */
+  })
+</script>
 ```
+
+Full setup, intake format and CORS notes: [docs/OPENOBSERVE.md][1].
 
 <!-- Note: all URLs should be absolute -->
 
-[1]: https://openobserve.ai/docs/user-guide/rum/
-[2]: https://www.npmjs.com/package/@openobserve/browser-rum
+[1]: https://github.com/koraitech/browser-sdk/blob/main/docs/OPENOBSERVE.md

@@ -15,7 +15,6 @@
 <!-- By submitting this test, you confirm the following: -->
 
 - [ ] Tested locally
-- [ ] Tested on staging
 - [ ] Added unit tests for this change.
 - [ ] Added e2e/integration tests for this change.
 

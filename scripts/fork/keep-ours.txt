@@ -1,0 +1,26 @@
+# Paths owned by this fork. During an upstream sync they are restored from the
+# current branch after the upstream tree is unpacked, and the rebrand codemod
+# never touches them. One path per line; directories apply recursively.
+
+# Fork identity / docs
+README.md
+NOTICE
+CONTRIBUTING.md
+CHANGELOG.md
+lerna.json
+.github
+docs/RELEASING.md
+docs/OPENOBSERVE.md
+docs/UPSTREAM.md
+
+# READMEs of published packages (npm always ships README.md)
+packages/js-core/README.md
+packages/browser-core/README.md
+packages/browser-worker/README.md
+packages/browser-rum-core/README.md
+packages/browser-rum/README.md
+packages/browser-logs/README.md
+packages/browser-rum-slim/README.md
+
+# Sync and release tooling
+scripts/fork

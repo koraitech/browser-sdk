@@ -1,50 +1,44 @@
-# Browser Log Collection
+# `@koraitech/browser-logs`
 
-Send logs to OpenObserve from web browser pages with the browser logs SDK.
-
-See the [OpenObserve RUM documentation][1] for more details.
+Send logs from web pages to an OpenObserve-compatible RUM intake.
 
 ## Usage
 
-After adding [`@openobserve/browser-logs`][2] to your `package.json` file, initialize it with:
-
 ```javascript
-import { openobserveLogs } from '@openobserve/browser-logs'
+import { koraiLogs } from '@koraitech/browser-logs'
 
-openobserveLogs.init({
-  clientToken: '<OPENOBSERVE_CLIENT_TOKEN>',
-  site: '<OPENOBSERVE_SITE>',
-  organizationIdentifier: '<OPENOBSERVE_ORGANIZATION_IDENTIFIER>',
+koraiLogs.init({
+  clientToken: '<RUM_CLIENT_TOKEN>',
+  site: '<OBSERVABILITY_HOST>',
+  organizationIdentifier: '<ORGANIZATION>',
+  service: 'my-web-app',
+  env: 'production',
   forwardErrorsToLogs: true,
   sessionSampleRate: 100,
 })
-```
 
-After the OpenObserve browser logs SDK is initialized, send custom log entries directly to OpenObserve:
-
-```javascript
-import { openobserveLogs } from '@openobserve/browser-logs'
-
-openobserveLogs.logger.info('Button clicked', { name: 'buttonName', id: 123 })
+koraiLogs.logger.info('Button clicked', { name: 'buttonName', id: 123 })
 
 try {
-  ...
-  throw new Error('Wrong behavior')
-  ...
-} catch (ex) {
-  openobserveLogs.logger.error('Error occurred', { team: 'myTeam' }, ex)
+  // ...
+} catch (error) {
+  koraiLogs.logger.error('Error occurred', { team: 'myTeam' }, error)
 }
 ```
 
 ## CDN
 
-The bundle is also served from the OpenObserve CDN:
-
 ```html
-<script src="https://browsersdk.openobserve.ai/<VERSION>/openobserve-logs.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@koraitech/browser-logs@<VERSION>/bundle/korai-logs.js"></script>
+<script>
+  window.KORAI_LOGS.init({
+    /* same options */
+  })
+</script>
 ```
+
+Full setup, intake format and CORS notes: [docs/OPENOBSERVE.md][1].
 
 <!-- Note: all URLs should be absolute -->
 
-[1]: https://openobserve.ai/docs/user-guide/rum/
-[2]: https://www.npmjs.com/package/@openobserve/browser-logs
+[1]: https://github.com/koraitech/browser-sdk/blob/main/docs/OPENOBSERVE.md

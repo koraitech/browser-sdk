@@ -1,0 +1,9 @@
+{
+  "comment": "Identity of this fork. rebrand.mjs derives every rename rule from these values, so changing the npm scope or the global names is a matter of editing this file and re-running the sync. Wire-format tokens (intake path, _o2 event namespace, o2tags, o2-api-key, x-openobserve-* tracing headers, data-o2-privacy attributes, storage keys) are deliberately NOT derived from here: they must stay byte-compatible with the OpenObserve ingestion API.",
+  "npmScope": "koraitech",
+  "apiPrefix": "korai",
+  "globalPrefix": "KORAI",
+  "bundlePrefix": "korai",
+  "displayName": "Korai",
+  "repository": "koraitech/browser-sdk"
+}

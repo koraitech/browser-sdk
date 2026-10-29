@@ -181,9 +181,9 @@ function injectHeadersIfTracingAllowed(
 
   inject(
     makeTracingHeaders(
-      context.traceId!,
-      context.spanId!,
-      context.traceSampled!,
+      context.traceId,
+      context.spanId,
+      context.traceSampled,
       session.id,
       tracingOption.propagatorTypes,
       userContext,
@@ -250,7 +250,7 @@ function extractExistingTraceparent(
       )
       traceparentValue = traceparentHeader?.[1] || null
     } else if (typeof fetchContext.init.headers === 'object') {
-      const headers = fetchContext.init.headers as Record<string, string>
+      const headers = fetchContext.init.headers
       traceparentValue = headers['traceparent'] || headers['Traceparent'] || null
     }
   }

@@ -1,23 +1,11 @@
-# @openobserve/js-core
+# `@koraitech/js-core`
 
-> **Internal package.** This package is intended for use by OpenObserve SDKs only and is not
-> designed for direct consumption by end users. APIs may change without notice outside of
-> OpenObserve SDK releases.
+> **Internal package.** Runtime-agnostic utilities shared by the Korai JavaScript SDKs. It is not intended for direct use, and its APIs may change without
+> notice.
 
-Runtime-agnostic core utilities shared across OpenObserve JavaScript SDKs.
-
-## Installation
-
-```sh
-npm install @openobserve/js-core
-# or
-yarn add @openobserve/js-core
-```
-
-## Documentation
-
-See the [OpenObserve RUM documentation][1].
+To collect RUM data use [`@koraitech/browser-rum`][1]; to collect logs use [`@koraitech/browser-logs`][2].
 
 <!-- Note: all URLs should be absolute -->
 
-[1]: https://openobserve.ai/docs/user-guide/rum/
+[1]: https://www.npmjs.com/package/@koraitech/browser-rum
+[2]: https://www.npmjs.com/package/@koraitech/browser-logs

@@ -31,7 +31,7 @@ Top-level `describe` blocks are run in a random order. Sometimes, an issue can o
 
 ## Work with E2E tests
 
-See `test/e2e/AGENTS.md` for the full E2E testing guide (setup, writing tests, createTest builder, IntakeRegistry, best practices).
+See `test/e2e/README.md` for the full E2E testing guide (setup, writing tests, createTest builder, IntakeRegistry, best practices).
 
 Quick commands:
 

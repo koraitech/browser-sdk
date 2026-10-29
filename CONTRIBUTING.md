@@ -8,8 +8,7 @@ improvements, feel free to submit a pull request.
 ## Submitting issues
 
 Github issues are welcome, feel free to submit error reports and feature requests! Make sure to add
-enough details to explain your use case. If you require further assistance, you can also contact
-our [support][1].
+enough details to explain your use case.
 
 ## Pull Requests
 
@@ -23,8 +22,8 @@ pull request:
 - Write meaningful [Commit messages and Pull Request
   titles](#commit-messages-and-pull-request-titles)
 
-Our CI is not (yet) public, so it may be difficult to understand why your pull request status is
-failing. Make sure that all tests pass locally, and we'll try to sort it out in our CI.
+CI runs on GitHub Actions for every pull request: typecheck, lint, format, build and unit tests
+must pass before merging.
 
 ## Modules usage convention
 
@@ -63,4 +62,4 @@ label our Commit messages and Pull Request titles:
 
 👌 - Updating code due to code review changes.
 
-[1]: https://docs.openobserve.ai/
+[2]: https://gitmoji.dev/

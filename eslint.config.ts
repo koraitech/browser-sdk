@@ -36,6 +36,7 @@ export default defineConfig(
     ignores: [
       ...SCHEMAS.map((schema) => schema.typesPath),
       'packages/*/bundle',
+      'scripts/fork',
       'packages/*/cjs',
       'packages/*/esm',
       'test/**/dist',

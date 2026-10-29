@@ -15,12 +15,12 @@
     "vite": "8.0.16"
   },
   "dependencies": {
-    "@mantine/core": "9.3.1",
-    "@mantine/hooks": "9.3.1",
     "@koraitech/browser-core": "workspace:*",
     "@koraitech/browser-logs": "workspace:*",
     "@koraitech/browser-rum": "workspace:*",
     "@koraitech/browser-rum-core": "workspace:*",
+    "@mantine/core": "9.3.1",
+    "@mantine/hooks": "9.3.1",
     "@tabler/icons-react": "3.44.0",
     "clsx": "2.1.1",
     "react": "19.2.7",

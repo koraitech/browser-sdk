@@ -14,5 +14,5 @@ When making changes that impact development workflows or architecture, update th
 | `docs/CONVENTIONS.md`  | Coding conventions and style guidelines                         |
 | `docs/ARCHITECTURE.md` | SDK design patterns and event pipeline                          |
 | `docs/TESTING.md`      | Unit and E2E testing strategy and infrastructure                |
-| `scripts/AGENTS.md`    | Writing and organizing scripts                                  |
-| `test/e2e/AGENTS.md`   | E2E test writing guide (Playwright, createTest, IntakeRegistry) |
+| `scripts/README.md`    | Writing and organizing scripts                                  |
+| `test/e2e/README.md`   | E2E test writing guide (Playwright, createTest, IntakeRegistry) |

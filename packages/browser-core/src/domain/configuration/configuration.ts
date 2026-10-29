@@ -1,5 +1,5 @@
 import { catchUserErrors } from '../../tools/catchUserErrors'
-import { DOCS_ORIGIN, MORE_DETAILS, display } from '../../tools/display'
+import { display } from '../../tools/display'
 import type { RawTelemetryConfiguration } from '../telemetry'
 import { isPercentage } from '../../tools/utils/numberUtils'
 import { objectHasValue } from '../../tools/utils/objectUtils'
