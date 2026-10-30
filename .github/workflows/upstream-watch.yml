@@ -1,0 +1,30 @@
+name: Upstream watch
+
+# Weekly check for new commits in openobserve/browser-sdk and new DataDog/browser-sdk releases
+# since the last import. Keeps a single `upstream-sync` issue up to date (see
+# scripts/fork/check-upstream.mjs and docs/UPSTREAM.md).
+on:
+  schedule:
+    # Mondays at 07:00 UTC
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-watch
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: package.json
+      - run: node scripts/fork/check-upstream.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
