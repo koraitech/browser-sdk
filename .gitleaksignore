@@ -1,0 +1,4 @@
+# Reviewed false positives (test fixtures, mock data, public example values).
+# Add a line per reviewed finding: <commit>:<file>:<rule>:<line> (the gitleaks Fingerprint).
+a9d29ee1c061c36122a6cf467117836bba7ac7a6:developer-extension/src/common/monitoringConfig.ts:generic-api-key:5
+a9d29ee1c061c36122a6cf467117836bba7ac7a6:test/e2e/lib/helpers/configuration.ts:generic-api-key:4
