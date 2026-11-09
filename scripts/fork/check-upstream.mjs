@@ -26,7 +26,10 @@ const { repository } = JSON.parse(readFileSync(new URL('./brand.json', import.me
 
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: 'utf8', ...opts }).trim()
 const git = (...args) => run('git', args)
-const gh = (...args) => run('gh', args)
+const gh = (...args) => {
+  const opts = typeof args.at(-1) === 'object' ? args.pop() : {}
+  return run('gh', args, opts)
+}
 const short = (sha) => sha.slice(0, 8)
 
 async function raw(repo, ref, path) {
