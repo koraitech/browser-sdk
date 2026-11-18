@@ -27,6 +27,7 @@ describe('tracer', () => {
     userId?: ContextValue
   } = {}) {
     const configuration = validateAndBuildRumConfiguration({
+      site: 'datadoghq.com',
       clientToken: 'xxx',
       applicationId: 'xxx',
       service: 'service',

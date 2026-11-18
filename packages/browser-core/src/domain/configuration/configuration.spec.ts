@@ -51,73 +51,98 @@ describe('validateAndBuildConfiguration', () => {
     })
 
     it("shouldn't display any error if the configuration is correct", () => {
-      validateAndBuildConfiguration({ clientToken: 'yes' })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'yes' })
       expect(displaySpy).not.toHaveBeenCalled()
     })
 
     it('requires sessionSampleRate to be a percentage', () => {
       expect(
-        validateAndBuildConfiguration({ clientToken, sessionSampleRate: 'foo' } as unknown as InitConfiguration)
+        validateAndBuildConfiguration({
+          site: 'datadoghq.com',
+          clientToken,
+          sessionSampleRate: 'foo',
+        } as unknown as InitConfiguration)
       ).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledOnceWith('Session Sample Rate should be a number between 0 and 100')
 
       displaySpy.calls.reset()
-      expect(validateAndBuildConfiguration({ clientToken, sessionSampleRate: 200 })).toBeUndefined()
+      expect(
+        validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, sessionSampleRate: 200 })
+      ).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledOnceWith('Session Sample Rate should be a number between 0 and 100')
 
       displaySpy.calls.reset()
-      validateAndBuildConfiguration({ clientToken: 'yes', sessionSampleRate: 1 })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'yes', sessionSampleRate: 1 })
       expect(displaySpy).not.toHaveBeenCalled()
     })
 
     it('requires telemetrySampleRate to be a percentage', () => {
       expect(
-        validateAndBuildConfiguration({ clientToken, telemetrySampleRate: 'foo' } as unknown as InitConfiguration)
+        validateAndBuildConfiguration({
+          site: 'datadoghq.com',
+          clientToken,
+          telemetrySampleRate: 'foo',
+        } as unknown as InitConfiguration)
       ).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledOnceWith('Telemetry Sample Rate should be a number between 0 and 100')
 
       displaySpy.calls.reset()
-      expect(validateAndBuildConfiguration({ clientToken, telemetrySampleRate: 200 })).toBeUndefined()
+      expect(
+        validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, telemetrySampleRate: 200 })
+      ).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledOnceWith('Telemetry Sample Rate should be a number between 0 and 100')
 
       displaySpy.calls.reset()
-      validateAndBuildConfiguration({ clientToken: 'yes', telemetrySampleRate: 1 })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'yes', telemetrySampleRate: 1 })
       expect(displaySpy).not.toHaveBeenCalled()
     })
   })
 
   describe('site', () => {
-    it('should use US site by default', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken })!
-      expect(configuration.site).toBe('datadoghq.com')
+    it('requires site to be defined', () => {
+      expect(validateAndBuildConfiguration({ clientToken })).toBeUndefined()
+      expect(displaySpy).toHaveBeenCalledOnceWith('Site is not configured, we will not send any data.')
+    })
+
+    it('does not require site when a proxy is set', () => {
+      const configuration = validateAndBuildConfiguration({ clientToken, proxy: 'https://proxy.example.com' })
+      expect(configuration).toBeDefined()
     })
 
     it('should use site value when set', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, site: 'datadoghq.com' })!
-      expect(configuration.site).toBe('datadoghq.com')
+      const configuration = validateAndBuildConfiguration({ clientToken, site: 'intake.example.com' })!
+      expect(configuration.site).toBe('intake.example.com')
     })
   })
 
   describe('source', () => {
     it('should use the browser source by default', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken })!
       expect(configuration.source).toBe('browser')
     })
 
     it('should use the flutter and unity sources when set', () => {
-      expect(validateAndBuildConfiguration({ clientToken, source: 'flutter' })!.source).toBe('flutter')
-      expect(validateAndBuildConfiguration({ clientToken, source: 'unity' })!.source).toBe('unity')
+      expect(validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, source: 'flutter' })!.source).toBe(
+        'flutter'
+      )
+      expect(validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, source: 'unity' })!.source).toBe(
+        'unity'
+      )
     })
 
     it('should fall back to the browser source when set to an unsupported value', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, source: 'invalid' as any })!
+      const configuration = validateAndBuildConfiguration({
+        site: 'datadoghq.com',
+        clientToken,
+        source: 'invalid' as any,
+      })!
       expect(configuration.source).toBe('browser')
     })
   })
 
   describe('beforeSend', () => {
     it('should be undefined when beforeSend is missing on user configuration', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken })!
       expect(configuration.beforeSend).toBeUndefined()
     })
 
@@ -127,7 +152,7 @@ describe('validateAndBuildConfiguration', () => {
           return false
         }
       }
-      const configuration = validateAndBuildConfiguration({ clientToken, beforeSend })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, beforeSend })!
       expect(configuration.beforeSend!({ view: { url: '/foo' } }, {})).toBeFalse()
       expect(configuration.beforeSend!({ view: { url: '/bar' } }, {})).toBeUndefined()
     })
@@ -138,7 +163,7 @@ describe('validateAndBuildConfiguration', () => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw myError
       }
-      const configuration = validateAndBuildConfiguration({ clientToken, beforeSend })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, beforeSend })!
       expect(configuration.beforeSend!(null, {})).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledWith('beforeSend threw an error:', myError)
     })
@@ -146,21 +171,32 @@ describe('validateAndBuildConfiguration', () => {
 
   describe('trackingConsent', () => {
     it('defaults to "granted"', () => {
-      expect(validateAndBuildConfiguration({ clientToken: 'yes' })!.trackingConsent).toBe(TrackingConsent.GRANTED)
+      expect(validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'yes' })!.trackingConsent).toBe(
+        TrackingConsent.GRANTED
+      )
     })
 
     it('is set to provided value', () => {
       expect(
-        validateAndBuildConfiguration({ clientToken: 'yes', trackingConsent: TrackingConsent.NOT_GRANTED })!
-          .trackingConsent
+        validateAndBuildConfiguration({
+          site: 'datadoghq.com',
+          clientToken: 'yes',
+          trackingConsent: TrackingConsent.NOT_GRANTED,
+        })!.trackingConsent
       ).toBe(TrackingConsent.NOT_GRANTED)
       expect(
-        validateAndBuildConfiguration({ clientToken: 'yes', trackingConsent: TrackingConsent.GRANTED })!.trackingConsent
+        validateAndBuildConfiguration({
+          site: 'datadoghq.com',
+          clientToken: 'yes',
+          trackingConsent: TrackingConsent.GRANTED,
+        })!.trackingConsent
       ).toBe(TrackingConsent.GRANTED)
     })
 
     it('rejects invalid values', () => {
-      expect(validateAndBuildConfiguration({ clientToken: 'yes', trackingConsent: 'foo' as any })).toBeUndefined()
+      expect(
+        validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'yes', trackingConsent: 'foo' as any })
+      ).toBeUndefined()
       expect(displaySpy).toHaveBeenCalledOnceWith('Tracking Consent should be either "granted" or "not-granted"')
     })
   })
@@ -175,19 +211,19 @@ describe('validateAndBuildConfiguration', () => {
 
   describe('env parameter validation', () => {
     it('should validate the env parameter', () => {
-      validateAndBuildConfiguration({ clientToken, env: false as any })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, env: false as any })
       expect(displaySpy).toHaveBeenCalledOnceWith('Env must be defined as a string')
     })
   })
 
   describe('service parameter validation', () => {
     it('should validate the service parameter', () => {
-      validateAndBuildConfiguration({ clientToken, service: 1 as any })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, service: 1 as any })
       expect(displaySpy).toHaveBeenCalledOnceWith('Service must be defined as a string')
     })
 
     it('should not reject null', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, service: null })
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, service: null })
       expect(displaySpy).not.toHaveBeenCalled()
       expect(configuration!.service).toBeUndefined()
     })
@@ -195,14 +231,14 @@ describe('validateAndBuildConfiguration', () => {
 
   describe('version parameter validation', () => {
     it('should validate the version parameter', () => {
-      validateAndBuildConfiguration({ clientToken, version: 0 as any })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, version: 0 as any })
       expect(displaySpy).toHaveBeenCalledOnceWith('Version must be defined as a string')
     })
   })
 
   describe('allowedTrackingOrigins parameter validation', () => {
     it('should validate the allowedTrackingOrigins parameter', () => {
-      validateAndBuildConfiguration({ clientToken, allowedTrackingOrigins: 'foo' as any })
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, allowedTrackingOrigins: 'foo' as any })
       expect(displaySpy).toHaveBeenCalledOnceWith('Allowed Tracking Origins must be an array')
     })
   })

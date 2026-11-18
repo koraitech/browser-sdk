@@ -135,12 +135,12 @@ describe('endpointBuilder', () => {
     const replica = { clientToken: 'replica_client_token', applicationId: 'replica_application_id' }
 
     it('returns undefined when no replica is configured', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken })!
       expect(createReplicaEndpointBuilder(configuration, 'rum')).toBeUndefined()
     })
 
     it('uses the replica client token', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, replica })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, replica })!
       expect(createReplicaEndpointBuilder(configuration, 'rum')!.build('fetch', DEFAULT_PAYLOAD)).toContain(
         `o2-api-key=${replica.clientToken}`
       )
@@ -161,21 +161,26 @@ describe('endpointBuilder', () => {
     })
 
     it('keeps the source of the main configuration', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, source: 'flutter', replica })!
+      const configuration = validateAndBuildConfiguration({
+        site: 'datadoghq.com',
+        clientToken,
+        source: 'flutter',
+        replica,
+      })!
       expect(createReplicaEndpointBuilder(configuration, 'rum')!.build('fetch', DEFAULT_PAYLOAD)).toContain(
         'o2source=flutter'
       )
     })
 
     it('adds the replica application id to the rum endpoint', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, replica })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, replica })!
       expect(createReplicaEndpointBuilder(configuration, 'rum')!.build('fetch', DEFAULT_PAYLOAD)).toContain(
         `application.id=${replica.applicationId}`
       )
     })
 
     it('does not add the application id to non-rum endpoints', () => {
-      const configuration = validateAndBuildConfiguration({ clientToken, replica })!
+      const configuration = validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken, replica })!
       expect(createReplicaEndpointBuilder(configuration, 'logs')!.build('fetch', DEFAULT_PAYLOAD)).not.toContain(
         'application.id'
       )

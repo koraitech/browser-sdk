@@ -6,7 +6,7 @@ import { display } from '../../tools/display'
 import { selectSessionStoreStrategyType } from './sessionStore'
 import { SessionPersistence } from './sessionConstants'
 
-const DEFAULT_INIT_CONFIGURATION: InitConfiguration = { clientToken: 'abc' }
+const DEFAULT_INIT_CONFIGURATION: InitConfiguration = { site: 'datadoghq.com', clientToken: 'abc' }
 
 function makeConfiguration(initConfiguration: InitConfiguration): Configuration {
   return {

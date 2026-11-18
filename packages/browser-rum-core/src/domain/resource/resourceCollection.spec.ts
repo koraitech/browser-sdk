@@ -1200,6 +1200,7 @@ describe('resourceCollection', () => {
 
     it('should pull traceSampleRate from config if present', () => {
       const config = validateAndBuildRumConfiguration({
+        site: 'datadoghq.com',
         clientToken: 'xxx',
         applicationId: 'xxx',
         traceSampleRate: 60,
@@ -1219,6 +1220,7 @@ describe('resourceCollection', () => {
 
     it('should not define rule_psr if traceSampleRate is undefined', () => {
       const config = validateAndBuildRumConfiguration({
+        site: 'datadoghq.com',
         clientToken: 'xxx',
         applicationId: 'xxx',
       })!
@@ -1237,6 +1239,7 @@ describe('resourceCollection', () => {
 
     it('should define rule_psr to 0 if traceSampleRate is set to 0', () => {
       const config = validateAndBuildRumConfiguration({
+        site: 'datadoghq.com',
         clientToken: 'xxx',
         applicationId: 'xxx',
         traceSampleRate: 0,

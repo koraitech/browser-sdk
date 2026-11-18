@@ -31,7 +31,7 @@ import { koraiLogs } from '@koraitech/browser-logs'
 
 const transport = {
   clientToken: '<RUM_CLIENT_TOKEN>',
-  site: '<OBSERVABILITY_HOST>', // host only, e.g. observability.example.com
+  site: '<OBSERVABILITY_HOST>', // required, host only, e.g. observability.example.com
   organizationIdentifier: '<ORGANIZATION>',
   apiVersion: 'v1',
 }

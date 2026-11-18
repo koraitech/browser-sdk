@@ -82,6 +82,7 @@ describe('deliveryApi', () => {
   function makeConfig(overrides: Partial<DeliveryApiConfiguration> = {}): DeliveryApiConfiguration {
     return {
       service: 'test-service',
+      site: 'datadoghq.com',
       clientToken: 'test-client-token',
       env: 'staging',
       version: '1.0.0',

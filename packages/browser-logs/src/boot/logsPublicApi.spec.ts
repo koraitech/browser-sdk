@@ -21,7 +21,11 @@ import { makeLogsPublicApi } from './logsPublicApi'
 import type { StartLogs, StartLogsResult } from './startLogs'
 import { startLogs } from './startLogs'
 
-const DEFAULT_INIT_CONFIGURATION = { clientToken: 'xxx', trackingConsent: TrackingConsent.GRANTED }
+const DEFAULT_INIT_CONFIGURATION = {
+  site: 'datadoghq.com',
+  clientToken: 'xxx',
+  trackingConsent: TrackingConsent.GRANTED,
+}
 
 const mockSessionId = 'some-session-id'
 const getInternalContext = () => ({ session_id: mockSessionId })

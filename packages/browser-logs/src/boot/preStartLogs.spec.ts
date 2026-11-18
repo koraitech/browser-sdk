@@ -27,7 +27,7 @@ import type { DoStartLogs } from './preStartLogs'
 import { createPreStartStrategy } from './preStartLogs'
 import type { StartLogsResult } from './startLogs'
 
-const DEFAULT_INIT_CONFIGURATION = { clientToken: 'xxx' }
+const DEFAULT_INIT_CONFIGURATION = { site: 'datadoghq.com', clientToken: 'xxx' }
 const INVALID_INIT_CONFIGURATION = {} as LogsInitConfiguration
 
 describe('preStartLogs', () => {

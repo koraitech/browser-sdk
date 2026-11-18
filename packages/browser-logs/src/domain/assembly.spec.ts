@@ -16,7 +16,13 @@ import type { Hooks } from './hooks'
 import { createHooks } from './hooks'
 import { startRUMInternalContext } from './contexts/rumInternalContext'
 
-const initConfiguration = { clientToken: 'xxx', service: 'service', env: 'test', version: '1.0.0' }
+const initConfiguration = {
+  site: 'datadoghq.com',
+  clientToken: 'xxx',
+  service: 'service',
+  env: 'test',
+  version: '1.0.0',
+}
 const DEFAULT_MESSAGE = {
   status: StatusType.info,
   message: 'message',

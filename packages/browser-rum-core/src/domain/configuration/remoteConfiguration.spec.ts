@@ -14,6 +14,7 @@ import {
 import { buildCacheKey } from './remoteConfigurationCache'
 
 const DEFAULT_INIT_CONFIGURATION: RumInitConfiguration = {
+  site: 'datadoghq.com',
   clientToken: 'xxx',
   applicationId: 'xxx',
   service: 'xxx',
@@ -190,6 +191,7 @@ describe('remoteConfiguration', () => {
         applyRemoteConfiguration(DEFAULT_INIT_CONFIGURATION, rumRemoteConfiguration, supportedContextManagers, metrics)
       ).toEqual({
         applicationId: 'yyy',
+        site: 'datadoghq.com',
         clientToken: 'xxx',
         service: 'xxx',
         sessionSampleRate: 1,

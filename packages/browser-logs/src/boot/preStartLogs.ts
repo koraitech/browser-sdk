@@ -148,5 +148,5 @@ export function createPreStartStrategy(
 }
 
 function overrideInitConfigurationForBridge(initConfiguration: LogsInitConfiguration): LogsInitConfiguration {
-  return { ...initConfiguration, clientToken: 'empty' }
+  return { ...initConfiguration, clientToken: 'empty', site: initConfiguration.site || 'empty' }
 }

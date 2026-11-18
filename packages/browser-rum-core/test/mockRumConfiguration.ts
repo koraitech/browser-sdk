@@ -5,6 +5,7 @@ export function mockRumConfiguration(partialConfig: Partial<RumConfiguration> = 
   const FAKE_APP_ID = 'appId'
   const baseConfig: RumConfiguration = {
     ...validateAndBuildRumConfiguration({
+      site: 'datadoghq.com',
       clientToken: 'xxx',
       applicationId: FAKE_APP_ID,
       trackResources: true,

@@ -42,7 +42,12 @@ function startLogsWithDefaults({ configuration }: { configuration?: Partial<Logs
   const sessionManager = createSessionManagerMock()
   const { handleLog, stop, globalContext, accountContext, userContext } = startLogs(
     {
-      ...validateAndBuildLogsConfiguration({ clientToken: 'xxx', service: 'service', telemetrySampleRate: 0 })!,
+      ...validateAndBuildLogsConfiguration({
+        site: 'datadoghq.com',
+        clientToken: 'xxx',
+        service: 'service',
+        telemetrySampleRate: 0,
+      })!,
       ...configuration,
     },
     sessionManager,

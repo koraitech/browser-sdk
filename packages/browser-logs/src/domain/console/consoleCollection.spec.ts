@@ -9,7 +9,7 @@ import { LifeCycle, LifeCycleEventType } from '../lifeCycle'
 import { startConsoleCollection, LogStatusForApi } from './consoleCollection'
 
 describe('console collection', () => {
-  const initConfiguration = { clientToken: 'xxx', service: 'service' }
+  const initConfiguration = { site: 'datadoghq.com', clientToken: 'xxx', service: 'service' }
   let stopConsoleCollection: () => void
   let lifeCycle: LifeCycle
   let rawLogsEvents: Array<RawLogsEventCollectedData<RawConsoleLogsEvent>>

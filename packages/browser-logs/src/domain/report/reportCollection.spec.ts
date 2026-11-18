@@ -9,7 +9,7 @@ import { StatusType } from '../logger/isAuthorized'
 import { startReportCollection } from './reportCollection'
 
 describe('reports', () => {
-  const initConfiguration = { clientToken: 'xxx', service: 'service' }
+  const initConfiguration = { site: 'datadoghq.com', clientToken: 'xxx', service: 'service' }
   let reportingObserver: MockReportingObserver
   let stopReportCollection: () => void
   let lifeCycle: LifeCycle
