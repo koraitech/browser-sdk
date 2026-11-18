@@ -1,4 +1,4 @@
-import { replaceMockable } from '../../../test'
+import { mockUnreadableCookies, replaceMockable } from '../../../test'
 import { globalObject } from '../../tools/globalObject'
 import type { Configuration, InitConfiguration } from '../configuration'
 import { buildCookieOptions } from '../configuration'
@@ -115,6 +115,30 @@ describe('session store', () => {
         expect(sessionStoreStrategyType).toEqual(jasmine.objectContaining({ type: SessionPersistence.MEMORY }))
       })
 
+      it('falls back to the next strategy when document.cookie is not accessible', async () => {
+        spyOn(display, 'error')
+        makeCookiesUnreadable()
+        const sessionStoreStrategyType = await selectSessionStoreStrategyType(
+          makeConfiguration({
+            ...DEFAULT_INIT_CONFIGURATION,
+            sessionPersistence: [SessionPersistence.COOKIE, SessionPersistence.MEMORY],
+          })
+        )
+        expect(sessionStoreStrategyType).toEqual(jasmine.objectContaining({ type: SessionPersistence.MEMORY }))
+      })
+
+      it('falls back to the next strategy when document.cookie is not accessible and trackSessionAcrossSubdomains is enabled', async () => {
+        makeCookiesUnreadable()
+        const sessionStoreStrategyType = await selectSessionStoreStrategyType(
+          makeConfiguration({
+            ...DEFAULT_INIT_CONFIGURATION,
+            sessionPersistence: [SessionPersistence.COOKIE, SessionPersistence.MEMORY],
+            trackSessionAcrossSubdomains: true,
+          })
+        )
+        expect(sessionStoreStrategyType).toEqual(jasmine.objectContaining({ type: SessionPersistence.MEMORY }))
+      })
+
       it('returns undefined when no strategy in array is available', async () => {
         disableCookies()
         disableLocalStorage()
@@ -167,6 +191,10 @@ describe('session store', () => {
 
     function disableCookies() {
       spyOnProperty(document, 'cookie', 'get').and.returnValue('')
+      replaceMockable(globalObject.cookieStore, undefined)
+    }
+    function makeCookiesUnreadable() {
+      mockUnreadableCookies()
       replaceMockable(globalObject.cookieStore, undefined)
     }
     function disableLocalStorage() {
