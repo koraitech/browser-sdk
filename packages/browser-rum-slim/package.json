@@ -1,6 +1,6 @@
 {
   "name": "@koraitech/browser-rum-slim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "main": "cjs/entries/main.js",
   "module": "esm/entries/main.mjs",
@@ -19,11 +19,11 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "@koraitech/browser-core": "0.1.0",
-    "@koraitech/browser-rum-core": "0.1.0"
+    "@koraitech/browser-core": "0.1.1",
+    "@koraitech/browser-rum-core": "0.1.1"
   },
   "peerDependencies": {
-    "@koraitech/browser-logs": "0.1.0"
+    "@koraitech/browser-logs": "0.1.1"
   },
   "peerDependenciesMeta": {
     "@koraitech/browser-logs": {

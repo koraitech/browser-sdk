@@ -1,6 +1,6 @@
 {
   "name": "@koraitech/browser-worker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "main": "bundle/worker.js",
   "files": [
@@ -15,7 +15,7 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "@koraitech/browser-core": "0.1.0"
+    "@koraitech/browser-core": "0.1.1"
   },
   "repository": {
     "type": "git",

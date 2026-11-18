@@ -1383,11 +1383,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@koraitech/browser-core@npm:0.1.0, @koraitech/browser-core@workspace:*, @koraitech/browser-core@workspace:packages/browser-core":
+"@koraitech/browser-core@npm:0.1.1, @koraitech/browser-core@workspace:*, @koraitech/browser-core@workspace:packages/browser-core":
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-core@workspace:packages/browser-core"
   dependencies:
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/js-core": "npm:0.1.1"
     "@types/pako": "npm:2.0.4"
     pako: "npm:2.1.0"
   languageName: unknown
@@ -1397,8 +1397,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-debugger@workspace:packages/browser-debugger"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     acorn: "npm:8.17.0"
   languageName: unknown
   linkType: soft
@@ -1407,10 +1407,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-logs@workspace:packages/browser-logs"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
   peerDependencies:
-    "@koraitech/browser-rum": 0.1.0
+    "@koraitech/browser-rum": 0.1.1
   peerDependenciesMeta:
     "@koraitech/browser-rum":
       optional: true
@@ -1426,9 +1426,9 @@ __metadata:
     "@angular/core": "npm:22.0.1"
     "@angular/platform-browser": "npm:22.0.1"
     "@angular/router": "npm:22.0.1"
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     rxjs: "npm:7.8.2"
   peerDependencies:
     "@angular/core": ">=15 <=22"
@@ -1437,12 +1437,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@koraitech/browser-rum-core@npm:0.1.0, @koraitech/browser-rum-core@workspace:*, @koraitech/browser-rum-core@workspace:packages/browser-rum-core":
+"@koraitech/browser-rum-core@npm:0.1.1, @koraitech/browser-rum-core@workspace:*, @koraitech/browser-rum-core@workspace:packages/browser-rum-core":
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-core@workspace:packages/browser-rum-core"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     ajv: "npm:8.20.0"
   languageName: unknown
   linkType: soft
@@ -1451,10 +1451,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-nextjs@workspace:packages/browser-rum-nextjs"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/browser-rum-react": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/browser-rum-react": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     "@types/react": "npm:19.2.17"
     next: "npm:16.2.9"
     react: "npm:19.2.7"
@@ -1474,9 +1474,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-nuxt@workspace:packages/browser-rum-nuxt"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     vue: "npm:3.5.38"
     vue-router: "npm:5.1.0"
   peerDependencies:
@@ -1497,13 +1497,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@koraitech/browser-rum-react@npm:0.1.0, @koraitech/browser-rum-react@workspace:packages/browser-rum-react":
+"@koraitech/browser-rum-react@npm:0.1.1, @koraitech/browser-rum-react@workspace:packages/browser-rum-react":
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-react@workspace:packages/browser-rum-react"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     "@tanstack/react-router": "npm:1.170.15"
     "@types/react": "npm:19.2.17"
     "@types/react-dom": "npm:19.2.3"
@@ -1537,10 +1537,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-slim@workspace:packages/browser-rum-slim"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
   peerDependencies:
-    "@koraitech/browser-logs": 0.1.0
+    "@koraitech/browser-logs": 0.1.1
   peerDependenciesMeta:
     "@koraitech/browser-logs":
       optional: true
@@ -1551,9 +1551,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum-vue@workspace:packages/browser-rum-vue"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     "@vue/compiler-dom": "npm:3.5.38"
     "@vue/test-utils": "npm:2.4.11"
     vue: "npm:3.5.38"
@@ -1577,14 +1577,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-rum@workspace:packages/browser-rum"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
-    "@koraitech/browser-rum-core": "npm:0.1.0"
-    "@koraitech/browser-worker": "npm:0.1.0"
-    "@koraitech/js-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
+    "@koraitech/browser-rum-core": "npm:0.1.1"
+    "@koraitech/browser-worker": "npm:0.1.1"
+    "@koraitech/js-core": "npm:0.1.1"
     "@types/pako": "npm:2.0.4"
     pako: "npm:2.1.0"
   peerDependencies:
-    "@koraitech/browser-logs": 0.1.0
+    "@koraitech/browser-logs": 0.1.1
   peerDependenciesMeta:
     "@koraitech/browser-logs":
       optional: true
@@ -1615,16 +1615,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@koraitech/browser-worker@npm:0.1.0, @koraitech/browser-worker@workspace:packages/browser-worker":
+"@koraitech/browser-worker@npm:0.1.1, @koraitech/browser-worker@workspace:packages/browser-worker":
   version: 0.0.0-use.local
   resolution: "@koraitech/browser-worker@workspace:packages/browser-worker"
   dependencies:
-    "@koraitech/browser-core": "npm:0.1.0"
+    "@koraitech/browser-core": "npm:0.1.1"
     webpack: "npm:5.107.2"
   languageName: unknown
   linkType: soft
 
-"@koraitech/js-core@npm:0.1.0, @koraitech/js-core@workspace:packages/js-core":
+"@koraitech/js-core@npm:0.1.1, @koraitech/js-core@workspace:packages/js-core":
   version: 0.0.0-use.local
   resolution: "@koraitech/js-core@workspace:packages/js-core"
   languageName: unknown

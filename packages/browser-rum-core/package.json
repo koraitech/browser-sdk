@@ -1,6 +1,6 @@
 {
   "name": "@koraitech/browser-rum-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "main": "cjs/index.js",
   "module": "esm/index.mjs",
@@ -17,8 +17,8 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "@koraitech/browser-core": "0.1.0",
-    "@koraitech/js-core": "0.1.0"
+    "@koraitech/browser-core": "0.1.1",
+    "@koraitech/js-core": "0.1.1"
   },
   "devDependencies": {
     "ajv": "8.20.0"
