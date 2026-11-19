@@ -41,5 +41,9 @@ A tag with a pre-release suffix (`v0.2.0-beta.1`) is published under the `next` 
 marked as a pre-release on GitHub. Re-running a failed workflow is safe: already published
 versions are skipped.
 
+After the release is created, the workflow posts its notes to the team's Slack channel
+(`.github/scripts/slack_release.py`, incoming webhook in the `SLACK_RELEASES_WEBHOOK` secret).
+Without the secret the post is skipped, and a failed post never fails the release.
+
 `BUILD_MODE=release` is what makes the bundles report the real version as `sdk_version`; a
 local `yarn build` reports `dev`.
