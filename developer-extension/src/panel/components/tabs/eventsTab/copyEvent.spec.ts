@@ -31,6 +31,7 @@ describe('getIntakeUrlForEvent', () => {
         {
           rum: {
             config: {
+              site: 'datadoghq.com',
               clientToken: 'client-token',
               source: 'browser',
             },
@@ -57,6 +58,7 @@ describe('getIntakeUrlForEvent', () => {
         {
           rum: {
             config: {
+              site: 'datadoghq.com',
               clientToken: 'client-token',
               source: 'browser',
             },
@@ -76,6 +78,7 @@ describe('getIntakeUrlForEvent', () => {
         {
           rum: {
             config: {
+              site: 'datadoghq.com',
               clientToken: 'client-token',
               source: 'browser',
             },
@@ -95,6 +98,7 @@ describe('getIntakeUrlForEvent', () => {
         {
           logs: {
             config: {
+              site: 'datadoghq.com',
               clientToken: 'client-token',
               source: 'browser',
             },

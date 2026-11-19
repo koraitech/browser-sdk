@@ -374,6 +374,7 @@ function overrideInitConfigurationForBridge(initConfiguration: RumInitConfigurat
     ...initConfiguration,
     applicationId: '00000000-aaaa-0000-aaaa-000000000000',
     clientToken: 'empty',
+    site: initConfiguration.site || 'empty',
     sessionSampleRate: 100,
     defaultPrivacyLevel: initConfiguration.defaultPrivacyLevel ?? getEventBridge()?.getPrivacyLevel(),
   }

@@ -1,5 +1,5 @@
 import type { MockFetch, MockFetchManager } from '../../test'
-import { registerCleanupTask, mockFetch } from '../../test'
+import { registerCleanupTask, mockFetch, collectAsyncCalls } from '../../test'
 import type { Subscription } from '../tools/observable'
 import type { FetchResolveContext, FetchContext } from './fetchObservable'
 import { initFetchObservable, resetFetchObservable, ResponseBodyAction } from './fetchObservable'
@@ -348,5 +348,26 @@ describe('fetch proxy with ResponseBodyAction', () => {
       expect(requests[0].responseBody).toBe('response body content')
       done()
     })
+  })
+})
+
+describe('fetch proxy with a fetch override resolving without a Response', () => {
+  it('should track the request with a status 0', async () => {
+    spyOn(window, 'fetch').and.returnValue(Promise.resolve(undefined as unknown as Response))
+    const resolveSpy = jasmine.createSpy<(context: FetchResolveContext) => void>()
+    const subscription = initFetchObservable().subscribe((context) => {
+      if (context.state === 'resolve') {
+        resolveSpy(context)
+      }
+    })
+    registerCleanupTask(() => {
+      subscription.unsubscribe()
+      resetFetchObservable()
+    })
+
+    await window.fetch('http://fake-url/')
+
+    await collectAsyncCalls(resolveSpy, 1)
+    expect(resolveSpy.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ status: 0, isAborted: false }))
   })
 })

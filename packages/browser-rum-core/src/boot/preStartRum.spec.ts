@@ -33,8 +33,8 @@ import type { StartRumResult } from './startRum'
 import type { DoStartRum } from './preStartRum'
 import { createPreStartStrategy } from './preStartRum'
 
-const DEFAULT_INIT_CONFIGURATION = { applicationId: 'xxx', clientToken: 'xxx' }
-const INVALID_INIT_CONFIGURATION = { clientToken: 'yes' } as RumInitConfiguration
+const DEFAULT_INIT_CONFIGURATION = { applicationId: 'xxx', site: 'datadoghq.com', clientToken: 'xxx' }
+const INVALID_INIT_CONFIGURATION = { site: 'datadoghq.com', clientToken: 'yes' } as RumInitConfiguration
 const AUTO_CONFIGURATION = { ...DEFAULT_INIT_CONFIGURATION }
 const MANUAL_CONFIGURATION = { ...AUTO_CONFIGURATION, trackViewsManually: true }
 const FAKE_WORKER = {} as DeflateWorker
@@ -601,6 +601,7 @@ describe('preStartRum', () => {
           name: 'a',
           onInit: ({ initConfiguration }) => {
             initConfiguration.clientToken = 'client-token'
+            initConfiguration.site = 'intake.example.com'
             initConfiguration.applicationId = 'application-id'
           },
         }

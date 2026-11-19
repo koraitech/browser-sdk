@@ -8,6 +8,7 @@ import {
 
 const DEFAULT_CONFIG = {
   applicationId: 'xxx',
+  site: 'datadoghq.com',
   clientToken: 'xxx',
   allowedTrackingOrigins: undefined as any,
 }

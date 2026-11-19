@@ -14,7 +14,7 @@ import {
   validateAndBuildRumConfiguration,
 } from './configuration'
 
-const DEFAULT_INIT_CONFIGURATION = { clientToken: 'xxx', applicationId: 'xxx' }
+const DEFAULT_INIT_CONFIGURATION = { site: 'datadoghq.com', clientToken: 'xxx', applicationId: 'xxx' }
 
 describe('validateAndBuildRumConfiguration', () => {
   let displayErrorSpy: jasmine.Spy<typeof display.error>

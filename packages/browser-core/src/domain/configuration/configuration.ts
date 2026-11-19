@@ -135,10 +135,10 @@ export interface InitConfiguration {
   proxy?: string | ProxyFn | undefined
 
   /**
-   * The Datadog [site](https://docs.datadoghq.com/getting_started/site) parameter of your organization.
+   * The host of your intake, for example: `api.example.com`. Used verbatim as the intake host.
+   * Required unless `proxy` is set: without either, the SDK does not send any data.
    *
    * @category Transport
-   * @defaultValue datadoghq.com
    */
   site?: Site | undefined
 
@@ -359,6 +359,11 @@ export function validateAndBuildConfiguration(
 ): Configuration | undefined {
   if (!initConfiguration?.clientToken) {
     display.error('Client Token is not configured, we will not send any data.')
+    return
+  }
+
+  if (!initConfiguration.site && !initConfiguration.proxy) {
+    display.error('Site is not configured, we will not send any data.')
     return
   }
 

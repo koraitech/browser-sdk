@@ -1,9 +1,13 @@
 import type { Subscription } from '@koraitech/browser-core'
 import type { Duration } from '@koraitech/js-core/time'
 import type { Clock } from '@koraitech/browser-core/test'
-import { mockClock } from '@koraitech/browser-core/test'
+import { mockClock, registerCleanupTask } from '@koraitech/browser-core/test'
 import { createPerformanceEntry, mockPerformanceObserver } from '../../test'
-import { RumPerformanceEntryType, createPerformanceObservable } from './performanceObservable'
+import {
+  RumPerformanceEntryType,
+  createPerformanceObservable,
+  supportPerformanceTimingEvent,
+} from './performanceObservable'
 
 describe('performanceObservable', () => {
   let performanceSubscription: Subscription | undefined
@@ -66,5 +70,21 @@ describe('performanceObservable', () => {
     expect(observableCallback).not.toHaveBeenCalled()
     clock.tick(0)
     expect(observableCallback).toHaveBeenCalledWith([jasmine.objectContaining({ name: allowedUrl })])
+  })
+})
+
+describe('supportPerformanceTimingEvent', () => {
+  it('should return false when PerformanceObserver.supportedEntryTypes is not available', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(PerformanceObserver, 'supportedEntryTypes')
+    Object.defineProperty(PerformanceObserver, 'supportedEntryTypes', { get: () => undefined, configurable: true })
+    registerCleanupTask(() => {
+      if (originalDescriptor) {
+        Object.defineProperty(PerformanceObserver, 'supportedEntryTypes', originalDescriptor)
+      } else {
+        delete (PerformanceObserver as { supportedEntryTypes?: unknown }).supportedEntryTypes
+      }
+    })
+
+    expect(supportPerformanceTimingEvent(RumPerformanceEntryType.RESOURCE)).toBeFalse()
   })
 })

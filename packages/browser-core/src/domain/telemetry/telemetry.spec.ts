@@ -449,7 +449,7 @@ describe('startTelemetryTransport', () => {
     const telemetryObservable = new Observable<TelemetryEvent & Context>()
 
     const { stop } = startTelemetryTransport(
-      validateAndBuildConfiguration({ clientToken: 'xxx' })!,
+      validateAndBuildConfiguration({ site: 'datadoghq.com', clientToken: 'xxx' })!,
       telemetryObservable
     )
 

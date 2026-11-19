@@ -14,7 +14,7 @@ import {
   validateAndBuildLogsConfiguration,
 } from './configuration'
 
-const DEFAULT_INIT_CONFIGURATION = { clientToken: 'xxx' }
+const DEFAULT_INIT_CONFIGURATION = { site: 'datadoghq.com', clientToken: 'xxx' }
 
 describe('validateAndBuildLogsConfiguration', () => {
   describe('forwardErrorsToLogs', () => {

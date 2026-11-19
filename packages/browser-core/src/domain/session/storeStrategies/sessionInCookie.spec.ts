@@ -8,7 +8,7 @@ import { SESSION_COOKIE_EXPIRATION_DELAY, SESSION_TIME_OUT_DELAY, SessionPersist
 import { CookieApi, LEGACY_SESSION_STORE_KEY } from './sessionStoreStrategy'
 import { createCookieAccess, selectCookieStrategy, initCookieStrategy } from './sessionInCookie'
 
-const DEFAULT_INIT_CONFIGURATION = { clientToken: 'abc', trackAnonymousUser: true }
+const DEFAULT_INIT_CONFIGURATION = { site: 'datadoghq.com', clientToken: 'abc', trackAnonymousUser: true }
 
 function createMockCookieAccess() {
   let storedValues: string[] = []
@@ -233,7 +233,7 @@ describe('session in cookie strategy', () => {
 
   describe('selectCookieStrategy', () => {
     function makeConfiguration(): Configuration {
-      const cookieOptions = buildCookieOptions({ clientToken: 'abc' })
+      const cookieOptions = buildCookieOptions({ site: 'datadoghq.com', clientToken: 'abc' })
       return { cookieOptions } as Configuration
     }
 

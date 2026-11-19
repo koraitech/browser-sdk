@@ -57,7 +57,7 @@ const noopStartRum = (): ReturnType<StartRum> => ({
   startResource: () => undefined,
   stopResource: () => undefined,
 })
-const DEFAULT_INIT_CONFIGURATION = { applicationId: 'xxx', clientToken: 'xxx' }
+const DEFAULT_INIT_CONFIGURATION = { applicationId: 'xxx', site: 'datadoghq.com', clientToken: 'xxx' }
 const FAKE_WORKER = {} as DeflateWorker
 
 describe('rum public api', () => {
